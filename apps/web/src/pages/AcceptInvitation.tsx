@@ -28,6 +28,7 @@ export default function AcceptInvitation() {
   const [showCf, setShowCf]         = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError]           = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [done, setDone]             = useState(false);
 
   useEffect(() => {
@@ -36,14 +37,13 @@ export default function AcceptInvitation() {
 
   async function handleSubmit() {
     if (!token) return;
-    if (password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-    if (password !== confirm) {
-      setError('Passwords do not match.');
-      return;
-    }
+    const errs: Record<string, string> = {};
+    if (!password) errs.password = 'Password is required.';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
+    if (!confirm) errs.confirm = 'Please confirm your password.';
+    else if (password && password !== confirm) errs.confirm = 'Passwords do not match.';
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     setSubmitting(true);
     setError('');
     try {
@@ -94,37 +94,39 @@ export default function AcceptInvitation() {
               )}
 
               <div className="mb-[13px]">
-                <label className="block text-[11.5px] font-bold text-slate mb-[6px]">New Password</label>
+                <label className="block text-[11.5px] font-bold text-slate mb-[6px]">New Password<span className="text-urgent ml-[2px]">*</span></label>
                 <div className="relative">
                   <input
                     type={showPw ? 'text' : 'password'}
                     value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); }}
                     placeholder="At least 8 characters"
-                    className="w-full px-3 py-[11px] pr-11 border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white"
+                    className={`w-full px-3 py-[11px] pr-11 border-[1.4px] ${fieldErrors.password ? 'border-urgent' : 'border-line'} rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white`}
                   />
                   <button type="button" onClick={() => setShowPw(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink" tabIndex={-1}>
                     <EyeIcon open={showPw} />
                   </button>
                 </div>
+                {fieldErrors.password && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.password}</p>}
               </div>
 
               <div className="mb-5">
-                <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Confirm Password</label>
+                <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Confirm Password<span className="text-urgent ml-[2px]">*</span></label>
                 <div className="relative">
                   <input
                     type={showCf ? 'text' : 'password'}
                     value={confirm}
-                    onChange={(e) => setConfirm(e.target.value)}
+                    onChange={(e) => { setConfirm(e.target.value); setFieldErrors(p => ({ ...p, confirm: '' })); }}
                     placeholder="Repeat your password"
-                    className="w-full px-3 py-[11px] pr-11 border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white"
+                    className={`w-full px-3 py-[11px] pr-11 border-[1.4px] ${fieldErrors.confirm ? 'border-urgent' : 'border-line'} rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white`}
                   />
                   <button type="button" onClick={() => setShowCf(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink" tabIndex={-1}>
                     <EyeIcon open={showCf} />
                   </button>
                 </div>
+                {fieldErrors.confirm && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.confirm}</p>}
               </div>
 
               <button

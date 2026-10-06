@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "566155766794",
+    "project_id": "covershift-fbf27",
+    "storage_bucket": "covershift-fbf27.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:566155766794:android:8eed32cb8a1815071243f3",
+        "android_client_info": {
+          "package_name": "com.covershift.mobile"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCGkRgriTSf3ProM7gLTS0u2gyZnqRneVA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

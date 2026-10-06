@@ -52,11 +52,22 @@ function AddFacilityModal({ onClose, onCreated }: AddModalProps) {
   const [showPwd, setShowPwd]             = useState(false);
   const [saving, setSaving]               = useState(false);
   const [error, setError]                 = useState('');
+  const [fieldErrors, setFieldErrors]     = useState<Record<string, string>>({});
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) { setError('Passwords do not match.'); return; }
-    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
+    const errs: Record<string, string> = {};
+    if (!name.trim()) errs.name = 'Facility name is required.';
+    if (!city.trim()) errs.city = 'City is required.';
+    if (!adminFullName.trim()) errs.adminFullName = 'Admin full name is required.';
+    if (!adminEmail.trim()) errs.adminEmail = 'Admin email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(adminEmail.trim())) errs.adminEmail = 'Enter a valid email address.';
+    if (!password) errs.password = 'Password is required.';
+    else if (password.length < 6) errs.password = 'Password must be at least 6 characters.';
+    if (!confirmPassword) errs.confirmPassword = 'Please confirm the password.';
+    else if (password && password !== confirmPassword) errs.confirmPassword = 'Passwords do not match.';
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     setSaving(true);
     setError('');
     try {
@@ -96,10 +107,12 @@ function AddFacilityModal({ onClose, onCreated }: AddModalProps) {
           <div>
             <p className="text-[10.5px] font-bold text-slate uppercase tracking-wider mb-3">Facility Details</p>
             <div className="flex flex-col gap-[13px]">
-              <Field label="Hospital / Clinic Name">
-                <input type="text" value={name} onChange={(e) => setName(e.target.value)}
-                  required placeholder="e.g. Apollo Hospital Mumbai" className={inputCls} />
-              </Field>
+              <div>
+                <label className={labelCls}>Hospital / Clinic Name<span className="text-urgent ml-[2px]">*</span></label>
+                <input type="text" value={name} onChange={(e) => { setName(e.target.value); setFieldErrors(p => ({ ...p, name: '' })); }}
+                  placeholder="e.g. Apollo Hospital Mumbai" className={`${inputCls} ${fieldErrors.name ? 'border-urgent' : ''}`} />
+                {fieldErrors.name && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.name}</p>}
+              </div>
               <Field label="Facility Type">
                 <select value={facilityType} onChange={(e) => setFacilityType(e.target.value)} className={inputCls + ' cursor-pointer'}>
                   {TYPE_OPTIONS.filter((o) => o.value).map((o) => (
@@ -107,10 +120,12 @@ function AddFacilityModal({ onClose, onCreated }: AddModalProps) {
                   ))}
                 </select>
               </Field>
-              <Field label="City / Location">
-                <input type="text" value={city} onChange={(e) => setCity(e.target.value)}
-                  required placeholder="e.g. Mumbai, Maharashtra" className={inputCls} />
-              </Field>
+              <div>
+                <label className={labelCls}>City / Location<span className="text-urgent ml-[2px]">*</span></label>
+                <input type="text" value={city} onChange={(e) => { setCity(e.target.value); setFieldErrors(p => ({ ...p, city: '' })); }}
+                  placeholder="e.g. Mumbai, Maharashtra" className={`${inputCls} ${fieldErrors.city ? 'border-urgent' : ''}`} />
+                {fieldErrors.city && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.city}</p>}
+              </div>
             </div>
           </div>
 
@@ -120,23 +135,28 @@ function AddFacilityModal({ onClose, onCreated }: AddModalProps) {
           <div>
             <p className="text-[10.5px] font-bold text-slate uppercase tracking-wider mb-3">Admin Account</p>
             <div className="flex flex-col gap-[13px]">
-              <Field label="Full Name">
-                <input type="text" value={adminFullName} onChange={(e) => setAdminFullName(e.target.value)}
-                  required placeholder="Admin Name" className={inputCls} />
-              </Field>
-              <Field label="Email Address">
-                <input type="email" value={adminEmail} onChange={(e) => setAdminEmail(e.target.value)}
-                  required placeholder="admin@hospital.com" className={inputCls} />
-              </Field>
+              <div>
+                <label className={labelCls}>Full Name<span className="text-urgent ml-[2px]">*</span></label>
+                <input type="text" value={adminFullName} onChange={(e) => { setAdminFullName(e.target.value); setFieldErrors(p => ({ ...p, adminFullName: '' })); }}
+                  placeholder="Admin Name" className={`${inputCls} ${fieldErrors.adminFullName ? 'border-urgent' : ''}`} />
+                {fieldErrors.adminFullName && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.adminFullName}</p>}
+              </div>
+              <div>
+                <label className={labelCls}>Email Address<span className="text-urgent ml-[2px]">*</span></label>
+                <input type="email" value={adminEmail} onChange={(e) => { setAdminEmail(e.target.value); setFieldErrors(p => ({ ...p, adminEmail: '' })); }}
+                  placeholder="admin@hospital.com" className={`${inputCls} ${fieldErrors.adminEmail ? 'border-urgent' : ''}`} />
+                {fieldErrors.adminEmail && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.adminEmail}</p>}
+              </div>
               <Field label="Phone Number">
                 <input type="tel" value={adminPhone} onChange={(e) => setAdminPhone(e.target.value)}
                   placeholder="+91 9876543210" className={inputCls} />
               </Field>
-              <Field label="Password">
+              <div>
+                <label className={labelCls}>Password<span className="text-urgent ml-[2px]">*</span></label>
                 <div className="relative">
                   <input type={showPwd ? 'text' : 'password'} value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required placeholder="Create password" className={inputCls + ' pr-10'} />
+                    onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); }}
+                    placeholder="Create password" className={`${inputCls} pr-10 ${fieldErrors.password ? 'border-urgent' : ''}`} />
                   <button type="button" onClick={() => setShowPwd(v => !v)}
                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink" tabIndex={-1}>
                     {showPwd
@@ -145,12 +165,15 @@ function AddFacilityModal({ onClose, onCreated }: AddModalProps) {
                     }
                   </button>
                 </div>
-              </Field>
-              <Field label="Confirm Password">
+                {fieldErrors.password && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.password}</p>}
+              </div>
+              <div>
+                <label className={labelCls}>Confirm Password<span className="text-urgent ml-[2px]">*</span></label>
                 <input type={showPwd ? 'text' : 'password'} value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  required placeholder="Repeat password" className={inputCls} />
-              </Field>
+                  onChange={(e) => { setConfirmPassword(e.target.value); setFieldErrors(p => ({ ...p, confirmPassword: '' })); }}
+                  placeholder="Repeat password" className={`${inputCls} ${fieldErrors.confirmPassword ? 'border-urgent' : ''}`} />
+                {fieldErrors.confirmPassword && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.confirmPassword}</p>}
+              </div>
             </div>
           </div>
         </div>

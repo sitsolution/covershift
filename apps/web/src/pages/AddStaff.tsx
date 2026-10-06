@@ -45,9 +45,13 @@ const ROLE_META: Record<string, {
   },
 };
 
-const INPUT = 'w-full px-3 py-[11px] border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white';
+const INPUT = (err?: string) =>
+  `w-full px-3 py-[11px] border-[1.4px] ${err ? 'border-urgent' : 'border-line'} rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white`;
 const LABEL = 'block text-[11.5px] font-bold text-slate mb-[6px]';
 const FIELD = 'mb-[13px]';
+const REQ = <span className="text-urgent ml-[2px]">*</span>;
+const FieldError = ({ msg }: { msg?: string }) =>
+  msg ? <p className="text-[11px] text-urgent mt-[4px] font-medium">{msg}</p> : null;
 
 export default function AddStaff() {
   const navigate = useNavigate();
@@ -65,6 +69,7 @@ export default function AddStaff() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const meta = ROLE_META[role];
 
@@ -74,24 +79,29 @@ export default function AddStaff() {
     setSpecialty('');
   };
 
-  const validate = (): string => {
-    if (!fullName.trim() || fullName.trim().length < 3) return 'Full name must be at least 3 characters.';
-    if (!email.trim()) return 'Email is required.';
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return 'Enter a valid email address.';
-    if (!phone.trim()) return 'Phone number is required.';
-    if (!/^\+?[0-9 \-]{10,20}$/.test(phone.trim())) return 'Enter a valid phone number (10–15 digits).';
-    if (!password) return 'Temporary password is required.';
-    if (password.length < 8) return 'Password must be at least 8 characters.';
-    if (!/[A-Z]/.test(password)) return 'Password must contain at least one uppercase letter.';
-    if (!/[a-z]/.test(password)) return 'Password must contain at least one lowercase letter.';
-    if (!/[0-9]/.test(password)) return 'Password must contain at least one number.';
-    return '';
+  const validate = (): Record<string, string> => {
+    const errs: Record<string, string> = {};
+    if (!fullName.trim() || fullName.trim().length < 3) errs.fullName = 'Full name must be at least 3 characters.';
+    if (!email.trim()) errs.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = 'Enter a valid email address.';
+    if (!phone.trim()) errs.phone = 'Phone number is required.';
+    else if (!/^\+?[0-9 \-]{10,20}$/.test(phone.trim())) errs.phone = 'Enter a valid phone number (10–15 digits).';
+    if (!password) errs.password = 'Temporary password is required.';
+    else if (password.length < 8) errs.password = 'Password must be at least 8 characters.';
+    else if (!/[A-Z]/.test(password)) errs.password = 'Password must contain at least one uppercase letter.';
+    else if (!/[a-z]/.test(password)) errs.password = 'Password must contain at least one lowercase letter.';
+    else if (!/[0-9]/.test(password)) errs.password = 'Password must contain at least one number.';
+    return errs;
   };
 
-  const handleSubmit = async () => {
-    const err = validate();
-    if (err) { setError(err); return; }
+  const clearFieldError = (field: string) =>
+    setFieldErrors((prev) => { const next = { ...prev }; delete next[field]; return next; });
 
+  const handleSubmit = async () => {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+
+    setFieldErrors({});
     setSubmitting(true);
     setError('');
     try {
@@ -159,18 +169,38 @@ export default function AddStaff() {
 
         {/* Basic info */}
         <div className={FIELD}>
-          <label className={LABEL}>Full Name</label>
-          <input value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Dr. Arjun Mehta" className={INPUT} />
+          <label className={LABEL}>Full Name{REQ}</label>
+          <input
+            value={fullName}
+            onChange={(e) => { setFullName(e.target.value); clearFieldError('fullName'); }}
+            placeholder="Dr. Arjun Mehta"
+            className={INPUT(fieldErrors.fullName)}
+          />
+          <FieldError msg={fieldErrors.fullName} />
         </div>
 
         <div className="grid grid-cols-2 gap-[10px] mb-[13px]">
           <div>
-            <label className={LABEL}>Email Address</label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="arjun@example.com" className={INPUT} />
+            <label className={LABEL}>Email Address{REQ}</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); clearFieldError('email'); }}
+              placeholder="arjun@example.com"
+              className={INPUT(fieldErrors.email)}
+            />
+            <FieldError msg={fieldErrors.email} />
           </div>
           <div>
-            <label className={LABEL}>Phone Number</label>
-            <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" className={INPUT} />
+            <label className={LABEL}>Phone Number{REQ}</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); clearFieldError('phone'); }}
+              placeholder="+91 98765 43210"
+              className={INPUT(fieldErrors.phone)}
+            />
+            <FieldError msg={fieldErrors.phone} />
           </div>
         </div>
 
@@ -181,21 +211,21 @@ export default function AddStaff() {
             value={credentialNumber}
             onChange={(e) => setCredentialNumber(e.target.value)}
             placeholder={meta.credentialPlaceholder}
-            className={INPUT}
+            className={INPUT()}
           />
         </div>
 
         <div className="grid grid-cols-2 gap-[10px] mb-[13px]">
           <div>
             <label className={LABEL}>{meta.specialtyLabel}</label>
-            <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className={INPUT + ' appearance-none'}>
+            <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className={INPUT() + ' appearance-none'}>
               <option value="">Select…</option>
               {meta.specialtyOptions.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
           </div>
           <div>
             <label className={LABEL}>Experience</label>
-            <select value={experience} onChange={(e) => setExperience(e.target.value)} className={INPUT + ' appearance-none'}>
+            <select value={experience} onChange={(e) => setExperience(e.target.value)} className={INPUT() + ' appearance-none'}>
               <option value="">Select…</option>
               {EXPERIENCE_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
             </select>
@@ -204,14 +234,14 @@ export default function AddStaff() {
 
         {/* Temporary password */}
         <div className={FIELD}>
-          <label className={LABEL}>Temporary Password</label>
+          <label className={LABEL}>Temporary Password{REQ}</label>
           <div className="relative">
             <input
               type={showPassword ? 'text' : 'password'}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => { setPassword(e.target.value); clearFieldError('password'); }}
               placeholder="Min. 8 chars, uppercase, number"
-              className={INPUT + ' pr-16'}
+              className={INPUT(fieldErrors.password) + ' pr-16'}
             />
             <button
               type="button"
@@ -221,6 +251,7 @@ export default function AddStaff() {
               {showPassword ? 'Hide' : 'Show'}
             </button>
           </div>
+          <FieldError msg={fieldErrors.password} />
           <p className="text-[11px] text-slate mt-[5px]">
             Share this with the staff member. They can change it after logging in on the mobile app.
           </p>

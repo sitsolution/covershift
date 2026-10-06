@@ -68,6 +68,7 @@ export default function SAAddEditUser() {
   const [saving, setSaving]       = useState(false);
   const [error, setError]         = useState('');
   const [success, setSuccess]     = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [showDeleteModal, setShowDeleteModal]   = useState(false);
   const [deleting, setDeleting]                 = useState(false);
   const [showResetModal, setShowResetModal]     = useState(false);
@@ -119,6 +120,14 @@ export default function SAAddEditUser() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errs: Record<string, string> = {};
+    if (!fullName.trim()) errs.fullName = 'Full name is required.';
+    if (!email.trim()) errs.email = 'Email is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = 'Enter a valid email address.';
+    if (!isEdit && !password) errs.password = 'Password is required.';
+    else if (!isEdit && password.length < 8) errs.password = 'Password must be at least 8 characters.';
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     setSaving(true);
     setError('');
     setSuccess('');
@@ -251,12 +260,14 @@ export default function SAAddEditUser() {
               <Panel title="User Details">
                 <div className="flex flex-col gap-[13px]">
                   <div>
-                    <label className={labelCls}>Full Name</label>
-                    <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required className={inputCls} placeholder="Full name" />
+                    <label className={labelCls}>Full Name<span className="text-urgent ml-[2px]">*</span></label>
+                    <input type="text" value={fullName} onChange={(e) => { setFullName(e.target.value); setFieldErrors(p => ({ ...p, fullName: '' })); }} className={`${inputCls} ${fieldErrors.fullName ? 'border-urgent' : ''}`} placeholder="Full name" />
+                    {fieldErrors.fullName && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.fullName}</p>}
                   </div>
                   <div>
-                    <label className={labelCls}>Email Address</label>
-                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required className={inputCls} placeholder="email@example.com" />
+                    <label className={labelCls}>Email Address<span className="text-urgent ml-[2px]">*</span></label>
+                    <input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); }} className={`${inputCls} ${fieldErrors.email ? 'border-urgent' : ''}`} placeholder="email@example.com" />
+                    {fieldErrors.email && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.email}</p>}
                   </div>
                   <div>
                     <label className={labelCls}>Phone Number</label>
@@ -264,15 +275,15 @@ export default function SAAddEditUser() {
                   </div>
                   {!isEdit && (
                     <div>
-                      <label className={labelCls}>Password</label>
+                      <label className={labelCls}>Password<span className="text-urgent ml-[2px]">*</span></label>
                       <input
                         type="password"
                         value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        required={!isEdit}
+                        onChange={(e) => { setPassword(e.target.value); setFieldErrors(p => ({ ...p, password: '' })); }}
                         placeholder="Min. 8 characters"
-                        className={inputCls}
+                        className={`${inputCls} ${fieldErrors.password ? 'border-urgent' : ''}`}
                       />
+                      {fieldErrors.password && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.password}</p>}
                     </div>
                   )}
                   <div>

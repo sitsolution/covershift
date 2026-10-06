@@ -111,14 +111,18 @@ export default function AdminSettings() {
   const [confirmPw, setConfirmPw] = useState('');
   const [pwSaving, setPwSaving] = useState(false);
   const [pwError, setPwError] = useState('');
+  const [pwFieldErrors, setPwFieldErrors] = useState<Record<string, string>>({});
   const [pwSuccess, setPwSuccess] = useState(false);
   const handleChangePassword = async () => {
-    if (!currentPw || !newPw || !confirmPw) { setPwError('All fields are required.'); return; }
-    if (newPw !== confirmPw) { setPwError('New passwords do not match.'); return; }
-    if (newPw.length < 8) { setPwError('New password must be at least 8 characters.'); return; }
-    if (!/[A-Z]/.test(newPw) || !/[a-z]/.test(newPw) || !/[0-9]/.test(newPw)) {
-      setPwError('Password must contain uppercase, lowercase, and a number.'); return;
-    }
+    const errs: Record<string, string> = {};
+    if (!currentPw) errs.currentPw = 'Current password is required.';
+    if (!newPw) errs.newPw = 'New password is required.';
+    else if (newPw.length < 8) errs.newPw = 'Password must be at least 8 characters.';
+    else if (!/[A-Z]/.test(newPw) || !/[a-z]/.test(newPw) || !/[0-9]/.test(newPw)) errs.newPw = 'Must contain uppercase, lowercase, and a number.';
+    if (!confirmPw) errs.confirmPw = 'Please confirm your new password.';
+    else if (newPw && newPw !== confirmPw) errs.confirmPw = 'Passwords do not match.';
+    if (Object.keys(errs).length > 0) { setPwFieldErrors(errs); return; }
+    setPwFieldErrors({});
     setPwSaving(true); setPwError('');
     try {
       await adminSettingsService.changePassword(currentPw, newPw);
@@ -584,16 +588,19 @@ export default function AdminSettings() {
                 </div>
               )}
               <div className="mb-[10px]">
-                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">Current Password</label>
-                <PasswordInput value={currentPw} onChange={(v) => { setCurrentPw(v); setPwError(''); }} placeholder="Enter current password" />
+                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">Current Password<span className="text-urgent ml-[2px]">*</span></label>
+                <PasswordInput value={currentPw} onChange={(v) => { setCurrentPw(v); setPwFieldErrors(p => ({ ...p, currentPw: '' })); setPwError(''); }} placeholder="Enter current password" />
+                {pwFieldErrors.currentPw && <p className="text-[11px] text-urgent mt-[4px] font-medium">{pwFieldErrors.currentPw}</p>}
               </div>
               <div className="mb-[10px]">
-                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">New Password</label>
-                <PasswordInput value={newPw} onChange={(v) => { setNewPw(v); setPwError(''); }} placeholder="Min. 8 chars, uppercase, number" />
+                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">New Password<span className="text-urgent ml-[2px]">*</span></label>
+                <PasswordInput value={newPw} onChange={(v) => { setNewPw(v); setPwFieldErrors(p => ({ ...p, newPw: '' })); setPwError(''); }} placeholder="Min. 8 chars, uppercase, number" />
+                {pwFieldErrors.newPw && <p className="text-[11px] text-urgent mt-[4px] font-medium">{pwFieldErrors.newPw}</p>}
               </div>
               <div className="mb-4">
-                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">Confirm New Password</label>
-                <PasswordInput value={confirmPw} onChange={(v) => { setConfirmPw(v); setPwError(''); }} placeholder="Repeat new password" />
+                <label className="block text-[11.5px] font-bold text-slate mb-[5px]">Confirm New Password<span className="text-urgent ml-[2px]">*</span></label>
+                <PasswordInput value={confirmPw} onChange={(v) => { setConfirmPw(v); setPwFieldErrors(p => ({ ...p, confirmPw: '' })); setPwError(''); }} placeholder="Repeat new password" />
+                {pwFieldErrors.confirmPw && <p className="text-[11px] text-urgent mt-[4px] font-medium">{pwFieldErrors.confirmPw}</p>}
               </div>
               <button
                 onClick={handleChangePassword}

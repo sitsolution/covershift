@@ -15,6 +15,7 @@ export default function AddAdminUser() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     adminSettingsService.getPermissions().then((opts) => {
@@ -46,10 +47,12 @@ export default function AddAdminUser() {
   };
 
   const handleSubmit = async () => {
-    if (!fullName.trim() || !email.trim()) {
-      setError('Full name and email are required.');
-      return;
-    }
+    const errs: Record<string, string> = {};
+    if (!fullName.trim()) errs.fullName = 'Full name is required.';
+    if (!email.trim()) errs.email = 'Email address is required.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) errs.email = 'Enter a valid email address.';
+    if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+    setFieldErrors({});
     setSubmitting(true);
     setError('');
     try {
@@ -88,23 +91,25 @@ export default function AddAdminUser() {
 
       <Panel className="max-w-[520px]">
         <div className="mb-[13px]">
-          <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Full Name</label>
+          <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Full Name<span className="text-urgent ml-[2px]">*</span></label>
           <input
             value={fullName}
-            onChange={(e) => setFullName(e.target.value)}
+            onChange={(e) => { setFullName(e.target.value); setFieldErrors(p => ({ ...p, fullName: '' })); }}
             placeholder="Rohan Deshpande"
-            className="w-full px-3 py-[11px] border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white"
+            className={`w-full px-3 py-[11px] border-[1.4px] ${fieldErrors.fullName ? 'border-urgent' : 'border-line'} rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white`}
           />
+          {fieldErrors.fullName && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.fullName}</p>}
         </div>
         <div className="mb-[13px]">
-          <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Email Address</label>
+          <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Email Address<span className="text-urgent ml-[2px]">*</span></label>
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => { setEmail(e.target.value); setFieldErrors(p => ({ ...p, email: '' })); }}
             placeholder="rohan@stjosephhosp.in"
-            className="w-full px-3 py-[11px] border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white"
+            className={`w-full px-3 py-[11px] border-[1.4px] ${fieldErrors.email ? 'border-urgent' : 'border-line'} rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white`}
           />
+          {fieldErrors.email && <p className="text-[11px] text-urgent mt-[4px] font-medium">{fieldErrors.email}</p>}
         </div>
         <div className="mb-[13px]">
           <label className="block text-[11.5px] font-bold text-slate mb-[6px]">Role</label>
