@@ -94,3 +94,22 @@ class FacilityMember(Base):
 
     def can(self, permission: AdminPermission) -> bool:
         return permission.value in self.permission_list
+
+
+class FacilityStaff(Base):
+    """A staff member a facility admin added to their facility's roster.
+
+    Staff who apply to one of the facility's shifts belong to it too, but that
+    link already lives on Application — this table holds only the manual adds.
+    """
+
+    __tablename__ = "facility_staff"
+
+    id = Column(Integer, primary_key=True, index=True)
+    facility_id = Column(Integer, ForeignKey("facilities.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    added_by_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    __table_args__ = (UniqueConstraint("facility_id", "user_id", name="uq_facility_staff"),)

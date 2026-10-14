@@ -29,7 +29,7 @@ from app.models.enums import (
     TicketStatus,
     UserRole,
 )
-from app.models.facility import Facility, FacilityMember
+from app.models.facility import Facility, FacilityMember, FacilityStaff
 from app.models.notification import Notification
 from app.models.otp import OtpCode, PasswordResetToken
 from app.models.payment import Payment, PayoutRequest
@@ -62,6 +62,7 @@ __all__ = [
     "DocumentType",
     "Facility",
     "FacilityMember",
+    "FacilityStaff",
     "FacilityType",
     "Faq",
     "Notification",

@@ -76,7 +76,7 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminSettings() {
-  const { userId: currentUserId } = useAuth();
+  const { userId: currentUserId, setFullName } = useAuth();
   const [activeNav, setActiveNav] = useState('Facility Profile');
   const [profile, setProfile] = useState<FacilityProfileOut | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,6 +165,7 @@ export default function AdminSettings() {
     try {
       const updated = await adminSettingsService.updateMyProfile({ fullName: acctName.trim() });
       setAcctName(updated.fullName);
+      setFullName(updated.fullName);
       setAcctSaved(true);
       setTimeout(() => setAcctSaved(false), 3000);
     } catch (err: any) {

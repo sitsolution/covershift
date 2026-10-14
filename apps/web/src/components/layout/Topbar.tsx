@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../store/auth';
 import { api } from '../../services/api';
 import GlobalSearch from './GlobalSearch';
+import ProfileMenu from './ProfileMenu';
 
 type Props = { facility?: string };
 
@@ -54,13 +55,8 @@ export default function Topbar({ facility = '—' }: Props) {
         )}
       </div>
 
-      {/* Avatar */}
-      <div
-        className="w-[30px] h-[30px] rounded-full bg-sky flex items-center justify-center text-[11px] font-extrabold text-navy flex-none"
-        title={fullName ?? ''}
-      >
-        {initials}
-      </div>
+      {/* Avatar → Profile / Log out */}
+      <ProfileMenu initials={initials} profilePath="/settings" avatarClassName="bg-sky text-navy" />
     </div>
   );
 }

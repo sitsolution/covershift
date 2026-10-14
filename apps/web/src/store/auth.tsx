@@ -19,6 +19,8 @@ interface AuthContextValue extends AuthState {
     fullName?: string;
   }) => void;
   setPermissions: (permissions: string[]) => void;
+  /** Keep the top-bar name/initials in step after the user renames themselves. */
+  setFullName: (fullName: string) => void;
   logout: () => void;
 }
 
@@ -86,6 +88,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     subscribeWebPush().catch(() => {});
   };
 
+  const setFullName = (fullName: string) => {
+    localStorage.setItem('user_full_name', fullName);
+    setState((s) => ({ ...s, fullName }));
+  };
+
   const logout = () => {
     // Best-effort unsubscribe before clearing the token
     unsubscribeWebPush().catch(() => {});
@@ -99,7 +106,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ ...state, saveTokens, setPermissions, logout }}>
+    <AuthContext.Provider value={{ ...state, saveTokens, setPermissions, setFullName, logout }}>
       {children}
     </AuthContext.Provider>
   );

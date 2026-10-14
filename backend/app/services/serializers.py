@@ -5,7 +5,7 @@ applied, and whether they favourited it. Both are passed in as prefetched maps
 so a list endpoint stays at a fixed number of queries.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Iterable, List, Optional, Set
 
 from sqlalchemy.orm import Session
@@ -19,8 +19,7 @@ from app.schemas.shift import FacilityBrief, ShiftDetail, ShiftListItem
 from app.schemas.user import UserOut
 
 
-def _as_aware(value: datetime) -> datetime:
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+_IST = timezone(timedelta(hours=5, minutes=30))
 
 
 def user_context(db: Session, user: User, shifts: Iterable[Shift]) -> tuple[Dict[int, str], Set[int]]:
@@ -133,13 +132,17 @@ def user_out(user: User) -> UserOut:
 
 
 def can_cancel_application(application: Application) -> bool:
-    """Pending applications can always be withdrawn; a confirmed one only up to
+    """Nothing can be cancelled once the shift has started. Before that, a
+    pending application can always be withdrawn; a confirmed one only up to
     the cutoff before the shift starts."""
+    # Shift times are stored as naive IST, so measure against IST now — reading
+    # them as UTC put the cutoff 5½ hours late.
+    start = application.shift.start_time.replace(tzinfo=None)
+    hours_out = (start - datetime.now(_IST).replace(tzinfo=None)).total_seconds() / 3600
+    if hours_out <= 0:
+        return False
     if application.status == ApplicationStatus.pending:
         return True
     if application.status != ApplicationStatus.confirmed:
         return False
-    hours_out = (
-        _as_aware(application.shift.start_time) - datetime.now(timezone.utc)
-    ).total_seconds() / 3600
     return hours_out >= settings.CANCELLATION_CUTOFF_HOURS

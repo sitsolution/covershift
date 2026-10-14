@@ -145,3 +145,46 @@ def test_cannot_read_another_users_application(client, auth_headers, db_session)
 
     response = client.get(f"/api/v1/applications/{application_id}", headers=other_headers)
     assert response.status_code == 404
+
+
+def _set_start(db_session, shift, hours_from_now):
+    """Place the shift start relative to IST now, matching how times are stored."""
+    from datetime import timedelta
+    from app.api.v1.endpoints.admin.common import now_ist
+
+    shift.start_time = now_ist() + timedelta(hours=hours_from_now)
+    shift.end_time = shift.start_time + timedelta(hours=8)
+    db_session.commit()
+
+
+def test_pending_application_cannot_be_withdrawn_once_the_shift_has_started(
+    client, auth_headers, db_session
+):
+    shift = make_shift(db_session, make_facility(db_session))
+    application_id = _apply(client, auth_headers, shift.id).json()["id"]
+    _set_start(db_session, shift, -1)
+
+    mine = client.get("/api/v1/applications?tab=pending", headers=auth_headers).json()
+    assert mine["items"][0]["canCancel"] is False
+    response = client.post(
+        f"/api/v1/applications/{application_id}/cancel", headers=auth_headers, json={}
+    )
+    assert response.status_code == 400
+
+
+def test_cancellation_cutoff_is_measured_in_ist(client, auth_headers, db_session):
+    """20 hours out is inside the 24-hour cutoff. Read as UTC it looked like
+    25½ hours, so the cancel used to go through."""
+    shift = make_shift(db_session, make_facility(db_session))
+    application_id = _apply(client, auth_headers, shift.id).json()["id"]
+
+    from app.models.application import Application
+    application = db_session.query(Application).filter(Application.id == application_id).one()
+    application.status = ApplicationStatus.confirmed
+    _set_start(db_session, shift, 20)
+
+    response = client.post(
+        f"/api/v1/applications/{application_id}/cancel", headers=auth_headers, json={}
+    )
+    assert response.status_code == 400
+    assert "too close" in response.json()["detail"]

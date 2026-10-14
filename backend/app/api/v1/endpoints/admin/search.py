@@ -7,13 +7,13 @@ from sqlalchemy import or_
 
 from app.core.admin import AdminContext, get_admin
 from app.models.application import Application
-from app.models.enums import ApplicationStatus, ShiftStatus
+from app.models.enums import STAFF_ROLES, ApplicationStatus, ShiftStatus
 from app.models.facility import Facility
 from app.models.shift import Shift
 from app.models.user import StaffProfile, User
 from app.schemas.base import CamelModel
 
-from .common import booking_reference, shift_reference
+from .common import booking_reference, facility_staff_ids, shift_reference
 
 router = APIRouter()
 
@@ -69,6 +69,7 @@ def admin_search(
     staff_q = (
         db.query(User, StaffProfile)
         .outerjoin(StaffProfile, StaffProfile.user_id == User.id)
+        .filter(User.role.in_(STAFF_ROLES))
         .filter(
             or_(
                 User.full_name.ilike(term),
@@ -76,9 +77,11 @@ def admin_search(
                 StaffProfile.specialty.ilike(term),
             )
         )
-        .limit(LIMIT)
-        .all()
     )
+    own_staff = facility_staff_ids(admin)
+    if own_staff is not None:
+        staff_q = staff_q.filter(User.id.in_(own_staff))
+    staff_q = staff_q.limit(LIMIT).all()
     staff_results = [
         StaffResult(
             id=u.id,

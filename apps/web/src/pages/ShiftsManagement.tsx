@@ -7,6 +7,7 @@ import Pagination from '../components/ui/Pagination';
 import adminShiftsService, { AdminShiftRow } from '../services/adminShiftsService';
 import SortTh from '../components/ui/SortTh';
 import DateRangePicker from '../components/ui/DateRangePicker';
+import { shiftDateRange } from '../utils/shiftDates';
 
 const PAGE_SIZE = 25;
 
@@ -22,10 +23,6 @@ function statusVariant(status: string): BadgeVariant {
     case 'draft': return 'info';
     default: return 'neutral';
   }
-}
-
-function shiftDateLabel(isoString: string): string {
-  return new Date(isoString).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 function shiftTimeRange(start: string, end: string): string {
@@ -186,7 +183,7 @@ export default function ShiftsManagement() {
                     <span className="font-semibold">{s.reference}</span>
                     {s.title && <p className="text-[10.5px] text-slate mt-[1px]">{s.title}</p>}
                   </td>
-                  <td>{shiftDateLabel(s.startTime)}</td>
+                  <td>{shiftDateRange(s.startTime, s.endTime)}</td>
                   <td>{shiftTimeRange(s.startTime, s.endTime)}</td>
                   <td>{s.location}</td>
                   <td>{s.specialty}</td>

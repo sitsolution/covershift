@@ -5,11 +5,12 @@ type Props = {
   defaultValue?: string;
   value?: string;
   type?: string;
+  min?: string;
   error?: string;
   onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
 };
 
-export default function FormField({ label, required, placeholder, defaultValue, value, type = 'text', error, onChange }: Props) {
+export default function FormField({ label, required, placeholder, defaultValue, value, type = 'text', min, error, onChange }: Props) {
   return (
     <div className="mb-[13px]">
       <label className="block text-[11.5px] font-bold text-slate mb-[6px]">
@@ -20,6 +21,7 @@ export default function FormField({ label, required, placeholder, defaultValue, 
         placeholder={placeholder}
         defaultValue={defaultValue}
         value={value}
+        min={min}
         onChange={onChange}
         className={`w-full px-3 py-[11px] border-[1.4px] rounded-[9px] text-[13px] text-ink outline-none bg-white ${
           error ? 'border-urgent focus:border-urgent' : 'border-line focus:border-navy-2'

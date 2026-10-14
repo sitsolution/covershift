@@ -6,6 +6,7 @@ import Panel from '../components/ui/Panel';
 import ChatDrawer from '../components/ChatDrawer';
 import adminBookingsService, { BookingDetail } from '../services/adminBookingsService';
 import { apiError } from '../utils/apiError';
+import { shiftDateRange } from '../utils/shiftDates';
 
 type BadgeVariant = 'success' | 'warning' | 'urgent' | 'info' | 'neutral';
 
@@ -32,8 +33,7 @@ function shiftLabel(booking: BookingDetail): string {
   const start = new Date(booking.shiftStart);
   const end = new Date(booking.shiftEnd);
   const fmt = (d: Date) => d.toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
-  const dateStr = start.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return `${booking.shiftLabel} · ${dateStr}, ${fmt(start)} – ${fmt(end)}`;
+  return `${booking.shiftLabel} · ${shiftDateRange(booking.shiftStart, booking.shiftEnd)}, ${fmt(start)} – ${fmt(end)}`;
 }
 
 function msgTime(iso: string): string {
@@ -237,7 +237,7 @@ export default function BookingDetails() {
                 ✓ Payment {booking.paymentStatus === 'processing' ? 'Received by Staff' : 'Sent'}
               </div>
             )}
-            {['pending', 'confirmed', 'upcoming'].includes(booking.status) && !showCancelPanel && (
+            {['pending', 'confirmed', 'upcoming'].includes(booking.status) && new Date(booking.shiftStart) > new Date() && !showCancelPanel && (
               <button
                 onClick={() => setShowCancelPanel(true)}
                 disabled={actionLoading}

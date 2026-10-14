@@ -5,6 +5,7 @@ import Badge from '../components/ui/Badge';
 import Panel from '../components/ui/Panel';
 import adminShiftsService, { AdminShiftDetail, ApplicantRow } from '../services/adminShiftsService';
 import { apiError } from '../utils/apiError';
+import { shiftDateRange } from '../utils/shiftDates';
 
 type BadgeVariant = 'success' | 'warning' | 'urgent' | 'neutral' | 'info';
 
@@ -42,8 +43,7 @@ function timeAgo(isoString: string): string {
 
 function shiftTimeLabel(start: string, end: string): string {
   const fmt = (s: string) => new Date(s).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit', hour12: true });
-  const dateLabel = new Date(start).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  return `${dateLabel}, ${fmt(start)} – ${fmt(end)}`;
+  return `${shiftDateRange(start, end)}, ${fmt(start)} – ${fmt(end)}`;
 }
 
 export default function ShiftDetails() {
@@ -113,18 +113,11 @@ export default function ShiftDetails() {
     }
   };
 
-  const handleDuplicate = async () => {
-    if (!shift || actionLoading) return;
-    setActionLoading(true);
-    setActionError('');
-    try {
-      const dup = await adminShiftsService.duplicateShift(shift.id);
-      navigate(`/shifts/${dup.id}`);
-    } catch (err) {
-      setActionError(apiError(err, 'Failed to duplicate shift. Please try again.'));
-    } finally {
-      setActionLoading(false);
-    }
+  // Opens Create Shift pre-filled from this shift, so dates, times and pay can
+  // be changed before anything is saved.
+  const handleDuplicate = () => {
+    if (!shift) return;
+    navigate(`/shifts/new?duplicate=${shift.id}`);
   };
 
   const handlePublish = async () => {
@@ -331,7 +324,8 @@ export default function ShiftDetails() {
             {[
               `Specialty: ${shift.specialty}`,
               `Duration: ${shift.durationHours}h`,
-              `Pay Rate: ₹${shift.payRate.toLocaleString('en-IN')}`,
+              `Pay Rate (per shift): ₹${shift.payRate.toLocaleString('en-IN')}`,
+              shift.overtimeRate ? `Overtime Rate (per hour): ₹${shift.overtimeRate.toLocaleString('en-IN')}` : null,
               shift.requiredQualifications.length > 0 ? `Qualifications: ${shift.requiredQualifications.join(', ')}` : null,
               shift.requiredCertifications.length > 0 ? `Certifications: ${shift.requiredCertifications.join(', ')}` : null,
               shift.requirements ? `Notes: ${shift.requirements}` : null,

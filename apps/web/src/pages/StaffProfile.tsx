@@ -7,6 +7,7 @@ import Panel from '../components/ui/Panel';
 import TabNav from '../components/ui/TabNav';
 import ChatDrawer from '../components/ChatDrawer';
 import adminStaffService, { StaffDetail, StaffShiftHistoryRow, StaffReviewOut, StaffNoteOut } from '../services/adminStaffService';
+import { shiftDateRange } from '../utils/shiftDates';
 
 const TABS = ['Overview', 'Professional Details', 'Documents', 'Shift History', 'Reviews', 'Notes'];
 
@@ -29,10 +30,6 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
       ))}
     </div>
   );
-}
-
-function shiftDateLabel(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
 }
 
 function formatResponseTime(minutes: number | null): string {
@@ -191,7 +188,7 @@ export default function StaffProfile() {
                     <tr><td colSpan={4} className="text-center text-[12px] text-slate py-6">No shifts yet.</td></tr>
                   ) : shifts.slice(0, 5).map((s) => (
                     <tr key={s.shiftId}>
-                      <td>{shiftDateLabel(s.startTime)}</td>
+                      <td>{shiftDateRange(s.startTime, s.endTime)}</td>
                       <td>{s.facilityName}</td>
                       <td><Badge label={s.status} variant={s.status === 'completed' ? 'neutral' : s.status === 'confirmed' ? 'success' : s.status === 'cancelled' ? 'urgent' : 'warning'} /></td>
                       <td>{s.ratingGiven ? `${s.ratingGiven}★` : '—'}</td>
@@ -269,7 +266,7 @@ export default function StaffProfile() {
                 ) : shifts.map((s) => (
                   <tr key={s.shiftId}>
                     <td className="font-semibold">{s.reference}</td>
-                    <td>{shiftDateLabel(s.startTime)}</td>
+                    <td>{shiftDateRange(s.startTime, s.endTime)}</td>
                     <td>{s.facilityName}</td>
                     <td>{s.specialty}</td>
                     <td><Badge label={s.status} variant={s.status === 'completed' ? 'neutral' : s.status === 'cancelled' ? 'urgent' : 'warning'} /></td>
@@ -343,7 +340,7 @@ export default function StaffProfile() {
                     <option value="">— Not linked to a specific shift —</option>
                     {shifts.filter(s => s.status === 'completed').map((s) => (
                       <option key={s.shiftId} value={String(s.shiftId)}>
-                        {s.reference} · {shiftDateLabel(s.startTime)} · {s.facilityName}
+                        {s.reference} · {shiftDateRange(s.startTime, s.endTime)} · {s.facilityName}
                       </option>
                     ))}
                   </select>

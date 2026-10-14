@@ -11,6 +11,9 @@ import tempfile
 os.environ.setdefault("SECRET_KEY", "test-secret-key-not-used-anywhere-real")
 os.environ.setdefault("DATABASE_URL", "sqlite://")
 os.environ.setdefault("DEBUG", "true")
+# Tests read codes from responses and must never email through the real
+# provider configured in backend/.env.
+os.environ["RESEND_API_KEY"] = ""
 # Keep uploaded fixtures out of the working tree.
 os.environ.setdefault("UPLOAD_DIR", tempfile.mkdtemp(prefix="coverline-test-uploads-"))
 
@@ -80,7 +83,11 @@ def registered_doctor(client):
     )
     assert verified.status_code == 200, verified.text
     token = verified.json()["accessToken"]
-    return {"headers": {"Authorization": f"Bearer {token}"}, "body": verified.json()}
+    return {
+        "headers": {"Authorization": f"Bearer {token}"},
+        "body": verified.json(),
+        "user_id": body["userId"],
+    }
 
 
 @pytest.fixture
@@ -168,3 +175,25 @@ def limited_admin(client, db_session, registered_admin):
         "/api/v1/auth/login", json={"email": "manager@example.com", "password": "Password1"}
     ).json()["accessToken"]
     return {"headers": {"Authorization": f"Bearer {token}"}, "user_id": user.id}
+
+
+@pytest.fixture
+def platform_admin_headers(client, db_session):
+    """A platform super admin — unscoped, sees every facility and staff member."""
+    from app.core.security import hash_password
+    from app.models.enums import UserRole
+    from app.models.user import User
+
+    db_session.add(User(
+        email="root@example.com",
+        full_name="Platform Admin",
+        hashed_password=hash_password("Password1"),
+        role=UserRole.super_admin,
+        is_verified=True,
+    ))
+    db_session.commit()
+
+    token = client.post(
+        "/api/v1/auth/login", json={"email": "root@example.com", "password": "Password1"}
+    ).json()["accessToken"]
+    return {"Authorization": f"Bearer {token}"}

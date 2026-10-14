@@ -1,5 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../store/auth';
+import { NavLink } from 'react-router-dom';
 
 const NAV = [
   { icon: '🧭', label: 'Dashboard',    to: '/superadmin/dashboard'    },
@@ -12,14 +11,6 @@ const NAV = [
 ];
 
 export default function SuperAdminSidebar() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
-
   return (
     <div
       className="w-[212px] flex-none flex flex-col"
@@ -64,14 +55,6 @@ export default function SuperAdminSidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-[18px] py-[13px] text-[12.5px] font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10 w-full text-left"
-      >
-        <span className="text-[14px] w-4 text-center">🚪</span>
-        Log out
-      </button>
     </div>
   );
 }

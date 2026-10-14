@@ -1,3 +1,4 @@
+import datetime as dt
 from datetime import date, datetime, time
 from typing import List, Optional
 
@@ -86,9 +87,10 @@ class AdminShiftDetail(AdminShiftRow):
 class ShiftCreate(CamelModel):
     """The Create Shift form.
 
-    Date and times are sent separately, exactly as the three form controls
-    collect them; the server combines them and rolls an end time past midnight
-    into the next day.
+    Dates and times are sent separately, exactly as the form controls collect
+    them. `end_date` is the day the shift ends — the same as `date` for a
+    daytime shift, the next day for a night shift. Without it, an end time
+    earlier than the start rolls into the next day.
     """
 
     title: Optional[str] = Field(default=None, max_length=255)
@@ -96,7 +98,8 @@ class ShiftCreate(CamelModel):
     role: UserRole = UserRole.doctor
     specialty: str = Field(min_length=1, max_length=120)
 
-    date: date
+    date: date                             # start date
+    end_date: Optional[dt.date] = None
     start_time: time
     end_time: time
 
@@ -126,7 +129,10 @@ class ShiftCreate(CamelModel):
 class ShiftUpdate(CamelModel):
     title: Optional[str] = None
     specialty: Optional[str] = None
-    date: Optional[date] = None
+    # dt.date, not date: a field named `date` shadows the type inside the class
+    # body, which turned this into a field that only ever accepted None.
+    date: Optional[dt.date] = None
+    end_date: Optional[dt.date] = None
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     pay_rate: Optional[float] = Field(default=None, gt=0)

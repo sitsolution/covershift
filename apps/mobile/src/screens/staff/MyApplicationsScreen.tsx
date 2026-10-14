@@ -16,6 +16,7 @@ import { NativeStackNavigationProp, NativeStackScreenProps } from '@react-naviga
 import { ShiftsStackParamList } from '../../navigation/ShiftsStackNavigator';
 import applicationService, { ApplicationOut, ApplicationCounts } from '../../services/applicationService';
 import earningsService from '../../services/earningsService';
+import { shiftDateRange } from '../../utils/shiftDates';
 
 type Props = NativeStackScreenProps<ShiftsStackParamList, 'MyApplications'>;
 
@@ -64,7 +65,7 @@ function AppCard({ item, tab, onCancel, onViewDetails, onPaymentReceived }: { it
       </View>
 
       <View style={styles.meta}>
-        <Text style={styles.metaPill}>📅 {formatDate(shift.startTime)}</Text>
+        <Text style={styles.metaPill}>📅 {shiftDateRange(shift.startTime, shift.endTime, formatDate)}</Text>
         <Text style={styles.metaPill}>⏰ {formatTime(shift.startTime, shift.endTime)}</Text>
         <Text style={styles.metaPill}>💊 {shift.specialty}</Text>
         <Text style={styles.metaPill}>⏱ {shift.durationHours} hrs</Text>

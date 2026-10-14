@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import SuperAdminSidebar from './SuperAdminSidebar';
 import { useAuth } from '../../store/auth';
 import GlobalSearch from './GlobalSearch';
+import ProfileMenu from './ProfileMenu';
 
 function getInitials(name: string | null): string {
   if (!name) return 'SA';
@@ -40,13 +41,8 @@ function SuperAdminTopbar() {
         🔔
       </div>
 
-      {/* SA Avatar */}
-      <div
-        className="w-[30px] h-[30px] rounded-full bg-navy flex items-center justify-center text-[11px] font-extrabold text-white flex-none"
-        title={fullName ?? 'Super Admin'}
-      >
-        {initials}
-      </div>
+      {/* SA Avatar → Profile / Log out */}
+      <ProfileMenu initials={initials} profilePath="/superadmin/profile" avatarClassName="bg-navy text-white" />
     </div>
   );
 }

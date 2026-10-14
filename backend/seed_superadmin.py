@@ -10,7 +10,7 @@ from app.core.security import hash_password
 from app.models.user import User
 from app.models.enums import UserRole
 
-EMAIL    = "superadmin@covershift.app"
+EMAIL    = "superadmin@coverline.app"
 PASSWORD = "Admin@1234"
 
 db = SessionLocal()

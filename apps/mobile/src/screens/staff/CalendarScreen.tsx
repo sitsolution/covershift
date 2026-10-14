@@ -15,6 +15,7 @@ import { CalendarStackParamList } from '../../navigation/CalendarStackNavigator'
 import calendarService, { CalendarDay } from '../../services/calendarService';
 import { ShiftItem } from '../../services/userService';
 import { useFocusEffect } from '@react-navigation/native';
+import { shiftDateRange } from '../../utils/shiftDates';
 
 type Props = {
   navigation: NativeStackNavigationProp<CalendarStackParamList, 'CalendarMain'>;
@@ -65,8 +66,8 @@ function shiftTimeLabel(shift: ShiftItem): string {
 }
 
 function shiftDateLabel(shift: ShiftItem): string {
-  const d = new Date(shift.startTime);
-  return `${shift.facility?.name ?? '—'} · ${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`;
+  const fmt = (iso: string) => new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+  return `${shift.facility?.name ?? '—'} · ${shiftDateRange(shift.startTime, shift.endTime, fmt)}`;
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

@@ -80,9 +80,11 @@ class Settings(BaseSettings):
 
     @property
     def expose_otp(self) -> bool:
-        """In DEBUG there is no SMS/email provider, so the OTP is returned
-        in the response to keep the signup flow testable. Never in production."""
-        return self.DEBUG
+        """Return codes in API responses only when they cannot be emailed, so
+        signup and password reset stay testable locally. Once an email provider
+        is configured the code goes by email only — DEBUG defaults to on, and a
+        reset code in the response would let anyone take over an account."""
+        return self.DEBUG and not self.RESEND_API_KEY
 
 
 @lru_cache

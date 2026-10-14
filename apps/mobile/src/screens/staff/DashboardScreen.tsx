@@ -22,6 +22,7 @@ import chatService from '../../services/chatService';
 import notificationService from '../../services/notificationService';
 import Toast, { ToastType } from '../../components/ui/Toast';
 import EmptyState from '../../components/ui/EmptyState';
+import { shiftDateRange } from '../../utils/shiftDates';
 
 type DashboardNavProp = CompositeNavigationProp<
   NativeStackNavigationProp<HomeStackParamList, 'Dashboard'>,
@@ -85,7 +86,7 @@ function UrgentShiftCard({ item, onPress, onApply }: { item: ShiftItem; onPress:
       </View>
 
       <View style={styles.metaRow}>
-        <View style={styles.metaPill}><Text style={styles.metaText}>📅 {formatShiftDate(item.startTime)}</Text></View>
+        <View style={styles.metaPill}><Text style={styles.metaText}>📅 {shiftDateRange(item.startTime, item.endTime, formatShiftDate)}</Text></View>
         <View style={styles.metaPill}><Text style={styles.metaText}>⏰ {formatShiftTime(item.startTime, item.endTime)}</Text></View>
       </View>
 
@@ -129,7 +130,7 @@ function RecommendedShiftCard({ item, onPress, onApply }: { item: ShiftItem; onP
       </View>
 
       <View style={[styles.metaRow, { marginTop: 4 }]}>
-        <View style={styles.metaPill}><Text style={styles.metaText}>📅 {formatShiftDate(item.startTime)}</Text></View>
+        <View style={styles.metaPill}><Text style={styles.metaText}>📅 {shiftDateRange(item.startTime, item.endTime, formatShiftDate)}</Text></View>
         <View style={styles.metaPill}><Text style={styles.metaText}>⏰ {formatShiftTime(item.startTime, item.endTime)}</Text></View>
         <View style={styles.metaPill}><Text style={styles.metaText}>🩺 {item.specialty}</Text></View>
         <View style={styles.metaPill}><Text style={styles.metaText}>{item.durationHours} hrs</Text></View>

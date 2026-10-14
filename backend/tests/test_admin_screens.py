@@ -21,7 +21,24 @@ def _connect_staff(client, admin_headers, auth_headers, facility, db_session):
 
 # ── Staff database ────────────────────────────────────────────────────────────
 
-def test_staff_directory_lists_registered_staff(client, admin_headers, auth_headers):
+def _add_to_roster(db_session, facility_id, staff_id):
+    from app.models.facility import FacilityStaff
+
+    db_session.add(FacilityStaff(facility_id=facility_id, user_id=staff_id))
+    db_session.commit()
+
+
+def test_staff_directory_hides_staff_from_other_facilities(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    """A facility admin sees only their own staff, never the whole platform."""
+    assert client.get("/api/v1/admin/staff", headers=admin_headers).json()["total"] == 0
+
+    rival = make_facility(db_session, name="Rival Hospital")
+    _connect_staff(client, admin_headers, auth_headers, rival, db_session)
+    assert client.get("/api/v1/admin/staff", headers=admin_headers).json()["total"] == 0
+
+    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
     body = client.get("/api/v1/admin/staff", headers=admin_headers).json()
     assert body["total"] == 1
 
@@ -31,14 +48,76 @@ def test_staff_directory_lists_registered_staff(client, admin_headers, auth_head
     assert row["availabilityLabel"] in ("Available", "Unavailable")
 
 
-def test_staff_hidden_when_profile_visibility_is_off(client, admin_headers, auth_headers):
+def test_platform_admin_sees_every_staff_member(
+    client, platform_admin_headers, auth_headers
+):
+    body = client.get("/api/v1/admin/staff", headers=platform_admin_headers).json()
+    assert body["total"] == 1
+    assert body["items"][0]["name"] == "Dr. Ananya Rao"
+
+
+def test_another_facilitys_staff_profile_is_not_found(
+    client, admin_headers, auth_headers, registered_doctor, platform_admin_headers
+):
+    staff_id = registered_doctor["user_id"]
+    for path in ("", "/shifts", "/reviews", "/notes"):
+        response = client.get(f"/api/v1/admin/staff/{staff_id}{path}", headers=admin_headers)
+        assert response.status_code == 404, path
+
+    assert client.get(
+        f"/api/v1/admin/staff/{staff_id}", headers=platform_admin_headers
+    ).status_code == 200
+
+
+def test_staff_added_by_an_admin_joins_their_roster(client, admin_headers, db_session):
+    created = client.post("/api/v1/admin/staff", headers=admin_headers, json={
+        "fullName": "Sister Meera Iyer", "email": "meera@example.com",
+        "phone": "+919822222222", "password": "Password1", "role": "nurse",
+    })
+    assert created.status_code == 201, created.text
+
+    body = client.get("/api/v1/admin/staff", headers=admin_headers).json()
+    assert [row["name"] for row in body["items"]] == ["Sister Meera Iyer"]
+
+
+def test_global_search_finds_only_the_facilitys_staff(
+    client, admin_headers, auth_headers, registered_admin, db_session, platform_admin_headers
+):
+    def staff_hits(headers):
+        return client.get("/api/v1/admin/search?q=Ananya", headers=headers).json()["staff"]
+
+    assert staff_hits(admin_headers) == []
+    assert len(staff_hits(platform_admin_headers)) == 1
+
+    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
+    assert len(staff_hits(admin_headers)) == 1
+
+
+def test_filter_options_only_cover_the_facilitys_staff(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    assert client.get(
+        "/api/v1/admin/staff/filter-options", headers=admin_headers
+    ).json()["specialties"] == []
+
+    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
+    assert client.get(
+        "/api/v1/admin/staff/filter-options", headers=admin_headers
+    ).json()["specialties"] == ["Emergency Med."]
+
+
+def test_staff_hidden_when_profile_visibility_is_off(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
     """Switching off Profile Visibility in the mobile app removes them."""
+    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
     client.patch("/api/v1/users/me/settings", headers=auth_headers,
                  json={"profileVisible": False})
     assert client.get("/api/v1/admin/staff", headers=admin_headers).json()["total"] == 0
 
 
-def test_staff_filters(client, admin_headers, auth_headers):
+def test_staff_filters(client, admin_headers, auth_headers, registered_admin, db_session):
+    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
     assert client.get(
         "/api/v1/admin/staff?role=nurse", headers=admin_headers
     ).json()["total"] == 0
@@ -53,25 +132,14 @@ def test_staff_filters(client, admin_headers, auth_headers):
     ).json()["total"] == 0
 
 
-def test_connected_only_narrows_to_the_facilitys_own_applicants(
-    client, admin_headers, auth_headers, registered_admin, db_session
-):
-    assert client.get(
-        "/api/v1/admin/staff?connectedOnly=true", headers=admin_headers
-    ).json()["total"] == 0
-
-    _connect_staff(client, admin_headers, auth_headers, registered_admin["facility"], db_session)
-    assert client.get(
-        "/api/v1/admin/staff?connectedOnly=true", headers=admin_headers
-    ).json()["total"] == 1
-
-
 def test_documents_are_withheld_until_the_staff_member_applies_here(
-    client, admin_headers, auth_headers, registered_admin, db_session
+    client, admin_headers, auth_headers, registered_admin, registered_doctor, db_session
 ):
-    """Credentials are private to facilities the staff member approached."""
+    """Credentials are private to facilities the staff member approached —
+    being on the roster alone is not enough."""
     _upload_document(client, auth_headers)
-    staff_id = client.get("/api/v1/admin/staff", headers=admin_headers).json()["items"][0]["id"]
+    staff_id = registered_doctor["user_id"]
+    _add_to_roster(db_session, registered_admin["facility_id"], staff_id)
 
     profile = client.get(f"/api/v1/admin/staff/{staff_id}", headers=admin_headers).json()
     assert profile["canViewDocuments"] is False
@@ -84,8 +152,11 @@ def test_documents_are_withheld_until_the_staff_member_applies_here(
     assert len(profile["documents"]) == 1
 
 
-def test_staff_notes_are_private_to_the_facility(client, admin_headers, auth_headers):
-    staff_id = client.get("/api/v1/admin/staff", headers=admin_headers).json()["items"][0]["id"]
+def test_staff_notes_are_private_to_the_facility(
+    client, admin_headers, registered_admin, registered_doctor, db_session
+):
+    staff_id = registered_doctor["user_id"]
+    _add_to_roster(db_session, registered_admin["facility_id"], staff_id)
 
     created = client.post(f"/api/v1/admin/staff/{staff_id}/notes", headers=admin_headers,
                           json={"body": "Reliable on night cover."})
@@ -96,8 +167,11 @@ def test_staff_notes_are_private_to_the_facility(client, admin_headers, auth_hea
     assert notes[0]["authorName"] == "Rakesh Menon"
 
 
-def test_review_requires_a_completed_shift_at_this_facility(client, admin_headers, auth_headers):
-    staff_id = client.get("/api/v1/admin/staff", headers=admin_headers).json()["items"][0]["id"]
+def test_review_requires_a_completed_shift_at_this_facility(
+    client, admin_headers, registered_admin, registered_doctor, db_session
+):
+    staff_id = registered_doctor["user_id"]
+    _add_to_roster(db_session, registered_admin["facility_id"], staff_id)
 
     response = client.post(f"/api/v1/admin/staff/{staff_id}/reviews", headers=admin_headers,
                            json={"rating": 5, "comment": "Great"})

@@ -1,4 +1,4 @@
-import { NavLink, useNavigate } from 'react-router-dom';
+import { NavLink } from 'react-router-dom';
 import { useAuth } from '../../store/auth';
 
 // permission: null means always visible (no permission required)
@@ -7,6 +7,7 @@ const NAV: { icon: string; label: string; to: string; permission: string | null 
   { icon: '🩺', label: 'Shifts',      to: '/shifts',       permission: 'shifts'      },
   { icon: '👨‍⚕️', label: 'Staff',       to: '/staff',        permission: 'staff'       },
   { icon: '📋', label: 'Bookings',    to: '/bookings',     permission: 'bookings'    },
+  { icon: '💬', label: 'Messages',    to: '/messages',     permission: null          },
   { icon: '📁', label: 'Documents',   to: '/documents',    permission: 'documents'   },
   { icon: '📈', label: 'Reports',     to: '/reports',      permission: 'reports'     },
   { icon: '🕓', label: 'Activity Log',to: '/activity-log', permission: 'activity_log'},
@@ -14,13 +15,7 @@ const NAV: { icon: string; label: string; to: string; permission: string | null 
 ];
 
 export default function Sidebar() {
-  const { logout, role, permissions } = useAuth();
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
-  };
+  const { role, permissions } = useAuth();
 
   // super_admin (platform) sees everything; facility_admin sees based on permissions
   const canSee = (permission: string | null) => {
@@ -56,14 +51,6 @@ export default function Sidebar() {
         ))}
       </nav>
 
-      {/* Logout */}
-      <button
-        onClick={handleLogout}
-        className="flex items-center gap-3 px-[18px] py-[13px] text-[12.5px] font-semibold text-white/60 hover:text-white hover:bg-white/10 transition-colors border-t border-white/10 w-full text-left"
-      >
-        <span className="text-[14px] w-4 text-center">🚪</span>
-        Log out
-      </button>
     </div>
   );
 }

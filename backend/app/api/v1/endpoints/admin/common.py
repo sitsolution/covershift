@@ -103,3 +103,24 @@ def csv_or_none(values: Optional[List[str]]) -> Optional[str]:
     if values is None:
         return None
     return ", ".join(v.strip() for v in values if v and v.strip()) or None
+
+
+def facility_staff_ids(admin):
+    """Subquery of the staff ids that belong to this admin's facilities: the
+    ones they added by hand plus anyone who has applied to one of their shifts.
+
+    Returns None for a platform admin, who sees every staff member.
+    """
+    if admin.is_platform_admin:
+        return None
+    from app.models.facility import FacilityStaff
+
+    added = admin.db.query(FacilityStaff.user_id.label("staff_id")).filter(
+        FacilityStaff.facility_id.in_(admin.facility_ids)
+    )
+    applied = (
+        admin.db.query(Application.staff_id.label("staff_id"))
+        .join(Shift, Application.shift_id == Shift.id)
+        .filter(Shift.facility_id.in_(admin.facility_ids))
+    )
+    return added.union(applied)

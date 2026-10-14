@@ -164,3 +164,42 @@ def test_cannot_read_a_booking_at_another_facility(
     assert client.get(
         f"/api/v1/admin/bookings/{application['id']}", headers=admin_headers
     ).status_code == 404
+
+
+def _start_shift(db_session, shift, hours_ago=1):
+    """Move a shift so it began `hours_ago` hours ago (IST, as stored)."""
+    from datetime import timedelta
+    from app.api.v1.endpoints.admin.common import now_ist
+
+    shift.start_time = now_ist() - timedelta(hours=hours_ago)
+    shift.end_time = shift.start_time + timedelta(hours=8)
+    db_session.commit()
+
+
+def test_booking_cannot_be_cancelled_once_the_shift_has_started(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    shift, booking_id = _confirmed_booking(
+        client, admin_headers, auth_headers, registered_admin["facility"], db_session
+    )
+    _start_shift(db_session, shift)
+
+    response = client.post(f"/api/v1/admin/bookings/{booking_id}/cancel",
+                           headers=admin_headers, json={})
+    assert response.status_code == 400
+    assert "already started" in response.json()["detail"]
+    assert client.get(f"/api/v1/admin/bookings/{booking_id}",
+                      headers=admin_headers).json()["status"] == "confirmed"
+
+
+def test_shift_cannot_be_cancelled_once_it_has_started(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    shift, _ = _confirmed_booking(
+        client, admin_headers, auth_headers, registered_admin["facility"], db_session
+    )
+    _start_shift(db_session, shift)
+
+    response = client.post(f"/api/v1/admin/shifts/{shift.id}/cancel", headers=admin_headers, json={})
+    assert response.status_code == 400
+    assert "already started" in response.json()["detail"]

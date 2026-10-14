@@ -107,8 +107,11 @@ export default function AdminLogin() {
           </div>
 
           {/* Forgot password */}
-          <div className="text-right text-[11.5px] font-bold text-navy-2 cursor-pointer mb-4" style={{ marginTop: '-6px' }}>
-            Forgot Password?
+          <div className="text-right mb-4" style={{ marginTop: '-6px' }}>
+            <button type="button" onClick={() => navigate('/forgot-password')}
+                    className="text-[11.5px] font-bold text-navy-2 cursor-pointer">
+              Forgot Password?
+            </button>
           </div>
 
           {/* Login button */}

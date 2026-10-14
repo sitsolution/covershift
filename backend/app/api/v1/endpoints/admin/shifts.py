@@ -57,17 +57,44 @@ DEFAULT_SPECIALTIES = [
 ]
 
 
-def _combine(day, start, end) -> tuple[datetime, datetime]:
-    """Build the shift window from the form's three separate controls.
+def _combine(day, start, end, end_day=None) -> tuple[datetime, datetime]:
+    """Build the shift window from the form's separate date and time controls.
 
-    An end time earlier than the start means the shift runs past midnight, so
-    it belongs to the following day — an 8 PM–8 AM night shift, for instance.
+    With no end date, an end time earlier than the start means the shift runs
+    past midnight, so it belongs to the following day — an 8 PM–8 AM night
+    shift, for instance.
     """
     start_dt = datetime.combine(day, start, tzinfo=timezone.utc)
-    end_dt = datetime.combine(day, end, tzinfo=timezone.utc)
-    if end_dt <= start_dt:
+    end_dt = datetime.combine(end_day or day, end, tzinfo=timezone.utc)
+    if end_day is None and end_dt <= start_dt:
         end_dt += timedelta(days=1)
     return start_dt, end_dt
+
+
+MAX_SHIFT_LENGTH = timedelta(hours=24)
+
+
+def _assert_valid_window(start_dt: datetime, end_dt: datetime) -> None:
+    if end_dt <= start_dt:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shift end must be after its start",
+        )
+    if end_dt - start_dt > MAX_SHIFT_LENGTH:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A shift cannot be longer than 24 hours",
+        )
+
+
+def _assert_starts_in_future(start_dt: datetime) -> None:
+    """Shift times are entered in IST and stored naive, so compare against IST
+    now — the UTC tag _combine adds is only a label, not a conversion."""
+    if start_dt.replace(tzinfo=None) <= now_ist():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Shift date and start time must be in the future",
+        )
 
 
 def _row(shift: Shift, pending: int, assigned: List[str]) -> AdminShiftRow:
@@ -253,12 +280,11 @@ def create_shift(
     if db.query(Facility).filter(Facility.id == facility_id).first() is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Facility not found")
 
-    start_dt, end_dt = _combine(payload.date, payload.start_time, payload.end_time)
-    if start_dt <= datetime.now(timezone.utc) and payload.publish:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="A published shift must start in the future",
-        )
+    start_dt, end_dt = _combine(
+        payload.date, payload.start_time, payload.end_time, payload.end_date
+    )
+    _assert_starts_in_future(start_dt)
+    _assert_valid_window(start_dt, end_dt)
 
     now = now_ist()
     shift = Shift(
@@ -441,11 +467,19 @@ def update_shift(
 
     data = payload.model_dump(exclude_unset=True)
 
-    if {"date", "startTime", "endTime"} & set(data) or {"date", "start_time", "end_time"} & set(data):
+    if {"date", "end_date", "start_time", "end_time"} & set(data):
         day = data.get("date") or shift.start_time.date()
         start = data.get("start_time") or shift.start_time.time()
         end = data.get("end_time") or shift.end_time.time()
-        shift.start_time, shift.end_time = _combine(day, start, end)
+        # Keep the existing end date unless the start date moved without one,
+        # in which case let _combine work it out from the times.
+        end_day = data.get("end_date")
+        if end_day is None and "date" not in data:
+            end_day = shift.end_time.date()
+        start_dt, end_dt = _combine(day, start, end, end_day)
+        _assert_starts_in_future(start_dt)
+        _assert_valid_window(start_dt, end_dt)
+        shift.start_time, shift.end_time = start_dt, end_dt
 
     if "slots" in data and data["slots"] < shift.slots_filled:
         raise HTTPException(

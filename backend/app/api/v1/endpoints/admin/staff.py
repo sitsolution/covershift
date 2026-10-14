@@ -20,6 +20,7 @@ from app.models.enums import (
     PaymentStatus,
     UserRole,
 )
+from app.models.facility import FacilityStaff
 from app.models.payment import Payment
 from app.models.shift import Shift
 from app.models.staff_meta import StaffNote, StaffReview
@@ -43,7 +44,7 @@ from app.api.v1.endpoints.documents import _to_out as document_out
 from app.schemas.base import MessageResponse
 from app.services.labels import credential_label, role_label
 
-from .common import shift_reference
+from .common import facility_staff_ids, shift_reference
 
 router = APIRouter()
 
@@ -94,10 +95,6 @@ def list_staff(
     verification: Optional[str] = Query(None, pattern="^(Verified|Pending|Rejected)$"),
     min_rating: Optional[float] = Query(None, alias="minRating", ge=0, le=5),
     location: Optional[str] = None,
-    connected_only: bool = Query(
-        False, alias="connectedOnly",
-        description="Only staff who have applied to one of your facilities",
-    ),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: Optional[str] = Query(None, alias="sortBy", pattern="^(name|rating|shifts)$"),
@@ -105,10 +102,9 @@ def list_staff(
 ):
     """Staff Database.
 
-    The directory is platform-wide — this is a locum marketplace, so admins
-    need to discover staff they have not worked with. Only staff who have made
-    their profile visible are listed; `connectedOnly` narrows to those who have
-    actually applied to one of the caller's facilities.
+    A facility admin sees only their facilities' staff — those they added and
+    those who have applied to one of their shifts. A platform admin sees every
+    staff member. Only staff who have made their profile visible are listed.
     """
     db = admin.db
     query = (
@@ -121,13 +117,9 @@ def list_staff(
         .filter(or_(UserSettings.profile_visible.is_(True), UserSettings.id.is_(None)))
     )
 
-    if connected_only and not admin.is_platform_admin:
-        connected = (
-            db.query(Application.staff_id)
-            .join(Shift, Application.shift_id == Shift.id)
-            .filter(Shift.facility_id.in_(admin.facility_ids))
-        )
-        query = query.filter(User.id.in_(connected))
+    own_staff = facility_staff_ids(admin)
+    if own_staff is not None:
+        query = query.filter(User.id.in_(own_staff))
 
     if search:
         term = f"%{search.strip()}%"
@@ -207,11 +199,16 @@ def list_staff(
 @router.get("/filter-options", response_model=StaffFilterOptions)
 def filter_options(admin: AdminContext = Depends(require_admin(AdminPermission.staff))):
     db = admin.db
+    profiles = db.query(StaffProfile)
+    own_staff = facility_staff_ids(admin)
+    if own_staff is not None:
+        profiles = profiles.filter(StaffProfile.user_id.in_(own_staff))
+
     specialties = [
-        row[0] for row in db.query(StaffProfile.specialty).distinct().all() if row[0]
+        row[0] for row in profiles.with_entities(StaffProfile.specialty).distinct().all() if row[0]
     ]
     locations = set()
-    for (value,) in db.query(StaffProfile.preferred_locations).distinct().all():
+    for (value,) in profiles.with_entities(StaffProfile.preferred_locations).distinct().all():
         for part in (value or "").split(","):
             if part.strip():
                 locations.add(part.strip())
@@ -241,11 +238,12 @@ def _can_view_documents(admin: AdminContext, staff_id: int) -> bool:
 
 
 def _get_staff(admin: AdminContext, staff_id: int) -> User:
-    user = (
-        admin.db.query(User)
-        .filter(User.id == staff_id, User.role.in_(STAFF_ROLES))
-        .first()
-    )
+    query = admin.db.query(User).filter(User.id == staff_id, User.role.in_(STAFF_ROLES))
+    own_staff = facility_staff_ids(admin)
+    if own_staff is not None:
+        # 404 rather than 403: another facility's staff member is not confirmed to exist.
+        query = query.filter(User.id.in_(own_staff))
+    user = query.first()
     if user is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Staff member not found")
     return user
@@ -636,6 +634,13 @@ def create_staff(
             experience=payload.experience,
         )
     )
+
+    # Put them on the adding facility's roster. A platform admin has no
+    # facility, and sees every staff member anyway.
+    if admin.primary_facility_id is not None:
+        db.add(FacilityStaff(
+            facility_id=admin.primary_facility_id, user_id=user.id, added_by_id=admin.user.id,
+        ))
 
     # Seed defaults (settings + availability) same as self-registration
     db.add(UserSettings(user_id=user.id))

@@ -150,9 +150,14 @@ def list_rooms(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_facility_admin),
 ):
-    """All conversations started by this admin, newest-activity first."""
+    """This admin's conversations, newest-activity first. A room is created as
+    soon as the chat drawer opens, so only rooms with a message are listed —
+    the same rule as the staff side."""
     rooms = _mysql_rooms_newest_first(
-        db.query(ChatRoom).filter(ChatRoom.admin_id == current_user.id)
+        db.query(ChatRoom).filter(
+            ChatRoom.admin_id == current_user.id,
+            ChatRoom.last_message_at.isnot(None),
+        )
     ).all()
     return [_room_out(r, current_user.id, db) for r in rooms]
 

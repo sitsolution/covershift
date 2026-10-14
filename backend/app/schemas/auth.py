@@ -152,7 +152,29 @@ class ForgotPasswordRequest(CamelModel):
     email: EmailStr
 
 
+class ForgotPasswordResponse(CamelModel):
+    message: str
+    expires_in_seconds: int
+    resend_available_in_seconds: int
+    debug_otp: Optional[str] = None
+
+
+class ResetPasswordWithCodeRequest(CamelModel):
+    """Forgot Password, second step: the emailed code plus the new password."""
+
+    email: EmailStr
+    code: str = Field(min_length=4, max_length=10)
+    new_password: str
+
+    @field_validator("new_password")
+    @classmethod
+    def check_password(cls, v: str) -> str:
+        return _validate_password(v)
+
+
 class ResetPasswordRequest(CamelModel):
+    """Accept Invitation: a one-time token and the password to set."""
+
     token: str
     new_password: str
 

@@ -20,6 +20,7 @@ from app.models.user import StaffProfile, User, UserSettings
 from app.schemas.auth import (
     ChangePasswordRequest,
     ForgotPasswordRequest,
+    ForgotPasswordResponse,
     GoogleAuthRequest,
     GoogleNeedsRegistrationResponse,
     GoogleSignupRequest,
@@ -30,6 +31,7 @@ from app.schemas.auth import (
     RegisterResponse,
     ResendOtpRequest,
     ResetPasswordRequest,
+    ResetPasswordWithCodeRequest,
     TokenResponse,
     VerifyOtpRequest,
 )
@@ -217,23 +219,52 @@ def resend_otp(payload: ResendOtpRequest, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/forgot-password", response_model=MessageResponse)
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
 def forgot_password(payload: ForgotPasswordRequest, db: Session = Depends(get_db)):
-    """Always reports success — the screen shows 'Reset link sent' either way,
-    so an unregistered email is not distinguishable from a registered one."""
+    """Forgot Password, first step: email a reset code.
+
+    An unknown email is reported straight away so the user can fix a typo.
+    This does reveal whether an account exists, but signup already does that
+    ("Email already registered"), so it adds nothing an attacker lacks.
+    """
     user = db.query(User).filter(User.email == payload.email).first()
-    if user is not None:
-        otp_service.issue_reset_token(db, user)
-    return MessageResponse(message="If that email is registered, a reset link is on its way.")
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No account found with this email address.",
+        )
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
+
+    cooldown = otp_service.seconds_until_resend(db, user.id, OtpPurpose.password_reset)
+    if cooldown > 0:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Please wait {cooldown} seconds before requesting another code",
+        )
+
+    code = otp_service.issue_code(db, user, OtpPurpose.password_reset)
+    return ForgotPasswordResponse(
+        message=f"A 6-digit reset code has been sent to {user.email}.",
+        expires_in_seconds=settings.OTP_TTL_MINUTES * 60,
+        resend_available_in_seconds=settings.OTP_RESEND_COOLDOWN_SECONDS,
+        debug_otp=code if settings.expose_otp else None,
+    )
 
 
 @router.post("/reset-password", response_model=MessageResponse)
-def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
-    user = otp_service.consume_reset_token(db, payload.token)
-    if user is None:
+def reset_password(payload: ResetPasswordWithCodeRequest, db: Session = Depends(get_db)):
+    """Forgot Password, second step: check the code and set the new password."""
+    user = db.query(User).filter(User.email == payload.email).first()
+    if user is None or not user.is_active:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="This reset link is invalid or has expired"
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect code. Please check the email and try again.",
         )
+
+    ok, reason = otp_service.verify_code(db, user, payload.code, OtpPurpose.password_reset)
+    if not ok:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=reason)
 
     user.hashed_password = hash_password(payload.new_password)
     db.commit()

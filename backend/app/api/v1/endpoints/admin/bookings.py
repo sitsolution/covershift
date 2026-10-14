@@ -469,6 +469,11 @@ def cancel_booking(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"A {application.status.value} booking cannot be cancelled",
         )
+    if application.shift.start_time <= now_ist():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This shift has already started and the booking cannot be cancelled",
+        )
 
     was_confirmed = application.status == ApplicationStatus.confirmed
     application.status = ApplicationStatus.cancelled

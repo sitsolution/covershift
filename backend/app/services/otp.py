@@ -92,6 +92,11 @@ def deliver(user: User, code: str, purpose: OtpPurpose) -> None:
         OtpPurpose.password_reset: "Your Covershift password reset code",
     }
     subject = subject_map.get(purpose, "Your Covershift verification code")
+    intro = (
+        "Use this code to reset your password"
+        if purpose == OtpPurpose.password_reset
+        else "Your verification code is"
+    )
 
     resend.api_key = settings.RESEND_API_KEY
     try:
@@ -101,7 +106,7 @@ def deliver(user: User, code: str, purpose: OtpPurpose) -> None:
             "subject": subject,
             "html": (
                 f"<p>Hi {user.full_name},</p>"
-                f"<p>Your verification code is: <strong style='font-size:24px'>{code}</strong></p>"
+                f"<p>{intro}: <strong style='font-size:24px'>{code}</strong></p>"
                 f"<p>This code expires in {settings.OTP_TTL_MINUTES} minutes. Do not share it with anyone.</p>"
                 f"<p>— The Covershift Team</p>"
             ),

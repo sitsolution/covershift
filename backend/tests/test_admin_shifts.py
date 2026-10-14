@@ -94,6 +94,92 @@ def test_cannot_publish_a_shift_in_the_past(client, admin_headers):
     assert response.status_code == 400
 
 
+def test_cannot_save_a_draft_in_the_past(client, admin_headers):
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=(date.today() - timedelta(days=1)).isoformat(), publish=False))
+    assert response.status_code == 400
+
+
+def _ist_payload(at: datetime, **overrides):
+    return _create_payload(
+        date=at.date().isoformat(),
+        startTime=at.strftime("%H:%M:00"),
+        endTime=(at + timedelta(hours=4)).strftime("%H:%M:00"),
+        **overrides,
+    )
+
+
+def test_start_time_earlier_today_is_rejected(client, admin_headers):
+    """Times are IST. Two hours ago in IST is still 'in the future' if it is
+    misread as UTC — the window that let past start times through."""
+    from app.api.v1.endpoints.admin.common import now_ist
+
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers,
+                           json=_ist_payload(now_ist() - timedelta(hours=2)))
+    assert response.status_code == 400
+    assert "must be in the future" in response.json()["detail"]
+
+
+def test_start_time_later_today_is_accepted(client, admin_headers):
+    from app.api.v1.endpoints.admin.common import now_ist
+
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers,
+                           json=_ist_payload(now_ist() + timedelta(hours=1)))
+    assert response.status_code == 201, response.text
+
+
+def test_cannot_move_a_shift_into_the_past(client, admin_headers):
+    shift = client.post("/api/v1/admin/shifts", headers=admin_headers,
+                        json=_create_payload()).json()
+    response = client.patch(f"/api/v1/admin/shifts/{shift['id']}", headers=admin_headers,
+                            json={"date": (date.today() - timedelta(days=1)).isoformat()})
+    assert response.status_code == 400
+
+
+def _days_ahead(n):
+    return (date.today() + timedelta(days=n)).isoformat()
+
+
+def test_night_shift_ends_on_the_chosen_end_date(client, admin_headers):
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=_days_ahead(5), endDate=_days_ahead(6), startTime="20:00:00", endTime="08:00:00"))
+    assert response.status_code == 201, response.text
+    body = response.json()
+    assert datetime.fromisoformat(body["endTime"]).date().isoformat() == _days_ahead(6)
+    assert body["durationHours"] == 12.0
+
+
+def test_short_shift_keeps_the_same_end_date(client, admin_headers):
+    body = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=_days_ahead(5), endDate=_days_ahead(5), startTime="10:00:00", endTime="13:00:00")).json()
+    assert datetime.fromisoformat(body["endTime"]).date().isoformat() == _days_ahead(5)
+    assert body["durationHours"] == 3.0
+
+
+def test_end_before_start_is_rejected_when_end_date_is_given(client, admin_headers):
+    """Same end date with an earlier end time is a mistake, not a night shift."""
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=_days_ahead(5), endDate=_days_ahead(5), startTime="20:00:00", endTime="08:00:00"))
+    assert response.status_code == 400
+    assert "after its start" in response.json()["detail"]
+
+
+def test_shift_longer_than_24_hours_is_rejected(client, admin_headers):
+    response = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=_days_ahead(5), endDate=_days_ahead(6), startTime="08:00:00", endTime="09:00:00"))
+    assert response.status_code == 400
+    assert "24 hours" in response.json()["detail"]
+
+
+def test_editing_the_end_date_turns_a_shift_overnight(client, admin_headers):
+    shift = client.post("/api/v1/admin/shifts", headers=admin_headers, json=_create_payload(
+        date=_days_ahead(5), endDate=_days_ahead(5), startTime="10:00:00", endTime="13:00:00")).json()
+    response = client.patch(f"/api/v1/admin/shifts/{shift['id']}", headers=admin_headers,
+                            json={"endDate": _days_ahead(6), "endTime": "06:00:00"})
+    assert response.status_code == 200, response.text
+    assert datetime.fromisoformat(response.json()["endTime"]).date().isoformat() == _days_ahead(6)
+
+
 def test_assigning_an_applicant_confirms_them_and_fills_the_shift(
     client, admin_headers, auth_headers, registered_admin, db_session
 ):

@@ -16,6 +16,7 @@ import { RouteProp } from '@react-navigation/native';
 import { ShiftsStackParamList } from '../../navigation/ShiftsStackNavigator';
 import shiftService from '../../services/shiftService';
 import { ShiftDetail } from '../../services/shiftService';
+import { shiftDateRange } from '../../utils/shiftDates';
 
 type Props = {
   navigation: NativeStackNavigationProp<ShiftsStackParamList, 'ShiftDetails'>;
@@ -196,7 +197,7 @@ export default function ShiftDetailsScreen({ navigation, route }: Props) {
         <View style={styles.detailCard}>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>📅 Date & Time</Text>
-            <Text style={styles.detailValue}>{formatDate(shift.startTime)}, {formatTime(shift.startTime, shift.endTime)}</Text>
+            <Text style={styles.detailValue}>{shiftDateRange(shift.startTime, shift.endTime, formatDate)}, {formatTime(shift.startTime, shift.endTime)}</Text>
           </View>
           <View style={styles.detailRow}>
             <Text style={styles.detailLabel}>📍 Location</Text>

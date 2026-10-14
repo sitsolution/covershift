@@ -100,7 +100,6 @@ export interface StaffFilters {
   verification?: string;
   minRating?: number;
   location?: string;
-  connectedOnly?: boolean;
   limit?: number;
   offset?: number;
   sortBy?: string;

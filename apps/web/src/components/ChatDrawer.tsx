@@ -74,9 +74,12 @@ export default function ChatDrawer({ staffId, staffName, onClose }: Props) {
       return;
     }
 
-    // Use same origin — Vite proxy (ws: true) forwards to backend
-    const wsOrigin = window.location.origin.replace(/^http/, 'ws');
-    const url = `${wsOrigin}/api/v1/chat/ws/${roomKey}?token=${token}`;
+    // Connect to wherever the REST API lives. In production that is the
+    // backend's own host — the site's host (Vercel) has no backend behind it.
+    // A relative VITE_API_URL falls back to the page origin (Vite proxy).
+    const apiBase = new URL(import.meta.env.VITE_API_URL ?? '/api/v1', window.location.origin);
+    const wsBase = apiBase.href.replace(/^http/, 'ws').replace(/\/$/, '');
+    const url = `${wsBase}/chat/ws/${roomKey}?token=${token}`;
 
     setConnStatus('connecting');
     const ws = new WebSocket(url);

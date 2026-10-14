@@ -12,6 +12,7 @@ import { ShiftsStackParamList } from '../../navigation/ShiftsStackNavigator';
 import { useFocusEffect } from '@react-navigation/native';
 import shiftService from '../../services/shiftService';
 import { ShiftItem } from '../../services/userService';
+import { shiftDateRange } from '../../utils/shiftDates';
 
 type Props = { navigation: NativeStackNavigationProp<ShiftsStackParamList, 'ShiftsList'> };
 
@@ -202,7 +203,7 @@ function ShiftCard({ item, onPress, onApply }: { item: ShiftItem; onPress: () =>
         </View>
       </View>
       <View style={styles.pillRow}>
-        <View style={styles.pill}><Text style={styles.pillText}>🗓 {formatDate(item.startTime)}</Text></View>
+        <View style={styles.pill}><Text style={styles.pillText}>🗓 {shiftDateRange(item.startTime, item.endTime, formatDate)}</Text></View>
         <View style={styles.pill}><Text style={styles.pillText}>⏰ {formatTime(item.startTime, item.endTime)}</Text></View>
         <View style={styles.pill}><Text style={styles.pillText}>🩺 {item.specialty}</Text></View>
         <View style={styles.pill}><Text style={styles.pillText}>{item.durationHours} hrs</Text></View>

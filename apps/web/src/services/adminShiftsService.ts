@@ -49,6 +49,7 @@ export interface TimelineEntry {
 
 export interface AdminShiftDetail extends AdminShiftRow {
   title?: string;
+  shiftType?: string;
   facilityId: number;
   facilityName: string;
   durationHours: number;
