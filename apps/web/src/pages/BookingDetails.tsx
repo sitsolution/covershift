@@ -75,6 +75,20 @@ export default function BookingDetails() {
 
   useEffect(() => { load(); }, [load]);
 
+  const handleAccept = async () => {
+    if (!id || actionLoading) return;
+    setActionLoading(true);
+    setActionError('');
+    try {
+      const updated = await adminBookingsService.acceptBooking(parseInt(id));
+      setBooking(updated);
+    } catch (err) {
+      setActionError(apiError(err, 'Failed to accept booking. Please try again.'));
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleComplete = async () => {
     if (!id || actionLoading) return;
     setActionLoading(true);
@@ -205,6 +219,15 @@ export default function BookingDetails() {
           <Panel title="Actions">
             {actionError && (
               <p className="text-[11px] text-urgent font-semibold mb-2">{actionError}</p>
+            )}
+            {booking.status === 'pending' && new Date(booking.shiftStart) > new Date() && (
+              <button
+                onClick={handleAccept}
+                disabled={actionLoading}
+                className="w-full bg-success text-white text-[13px] font-bold px-4 py-[11px] rounded-[10px] mb-2 disabled:opacity-60"
+              >
+                {actionLoading ? 'Accepting…' : 'Accept Booking'}
+              </button>
             )}
             {booking.staffId && (
               <button

@@ -36,6 +36,7 @@ from app.services.labels import role_label
 from app.services.notifications import notify
 
 from .common import as_aware, booking_display_status, booking_reference, now_ist, shift_reference
+from .shifts import confirm_application
 
 router = APIRouter()
 
@@ -360,6 +361,18 @@ def add_message(
     admin.db.commit()
     admin.db.refresh(message)
     return BookingMessageOut.model_validate(message)
+
+
+@router.post("/{booking_id}/accept", response_model=BookingDetail)
+def accept_booking(
+    booking_id: int,
+    admin: AdminContext = Depends(require_admin(AdminPermission.bookings)),
+):
+    """'Accept Booking' — confirms a pending booking, exactly as Assign does on
+    Shift Details."""
+    application = _get_booking(admin, booking_id)
+    confirm_application(admin, application.shift, application)
+    return get_booking(booking_id, admin)
 
 
 @router.post("/{booking_id}/complete", response_model=BookingDetail)

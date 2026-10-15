@@ -73,6 +73,12 @@ const adminBookingsService = {
     return data;
   },
 
+  /** Confirms a pending booking onto its shift — same as Assign on Shift Details. */
+  acceptBooking: async (id: number): Promise<BookingDetail> => {
+    const { data } = await api.post(`/admin/bookings/${id}/accept`);
+    return data;
+  },
+
   completeBooking: async (id: number): Promise<BookingDetail> => {
     const { data } = await api.post(`/admin/bookings/${id}/complete`);
     return data;

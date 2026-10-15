@@ -569,29 +569,13 @@ def duplicate_shift(
     return _detail(admin, copy)
 
 
-@router.post("/{shift_id}/assign", response_model=AdminShiftDetail)
-def assign_applicant(
-    shift_id: int,
-    payload: AssignRequest,
-    admin: AdminContext = Depends(require_admin(AdminPermission.shifts)),
-):
-    """'Assign from Applicants' — confirms one applicant onto the shift.
+def confirm_application(admin: AdminContext, shift: Shift, application: Application) -> None:
+    """Confirm a pending application onto its shift and tell the staff member.
 
-    This is the transition the mobile app depends on: until an admin assigns
-    someone, applications stay pending forever.
+    Shared by Shift Details' Assign and Booking Details' Accept, so both apply
+    the same rules. Commits.
     """
     db = admin.db
-    shift = _get_shift(admin, shift_id)
-
-    application = (
-        db.query(Application)
-        .filter(Application.id == payload.application_id, Application.shift_id == shift_id)
-        .first()
-    )
-    if application is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Applicant not found on this shift"
-        )
     if application.status == ApplicationStatus.confirmed:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="This applicant is already assigned"
@@ -604,6 +588,11 @@ def assign_applicant(
     if shift.slots_filled >= shift.slots:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail="Every slot on this shift is filled"
+        )
+    if shift.start_time <= now_ist():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="This shift has already started, so the booking can no longer be accepted",
         )
 
     application.status = ApplicationStatus.confirmed
@@ -633,6 +622,32 @@ def assign_applicant(
         facility_id=shift.facility_id,
     )
     db.commit()
+
+
+@router.post("/{shift_id}/assign", response_model=AdminShiftDetail)
+def assign_applicant(
+    shift_id: int,
+    payload: AssignRequest,
+    admin: AdminContext = Depends(require_admin(AdminPermission.shifts)),
+):
+    """'Assign from Applicants' — confirms one applicant onto the shift.
+
+    This is the transition the mobile app depends on: until an admin assigns
+    someone, applications stay pending forever.
+    """
+    db = admin.db
+    shift = _get_shift(admin, shift_id)
+
+    application = (
+        db.query(Application)
+        .filter(Application.id == payload.application_id, Application.shift_id == shift_id)
+        .first()
+    )
+    if application is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Applicant not found on this shift"
+        )
+    confirm_application(admin, shift, application)
     db.refresh(shift)
     return _detail(admin, shift)
 

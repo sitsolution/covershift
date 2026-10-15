@@ -203,3 +203,69 @@ def test_shift_cannot_be_cancelled_once_it_has_started(
     response = client.post(f"/api/v1/admin/shifts/{shift.id}/cancel", headers=admin_headers, json={})
     assert response.status_code == 400
     assert "already started" in response.json()["detail"]
+
+
+def _pending_booking(client, auth_headers, facility, db_session):
+    shift = make_shift(db_session, facility)
+    application = client.post(
+        f"/api/v1/shifts/{shift.id}/apply", headers=auth_headers, json={}
+    ).json()
+    return shift, application["id"]
+
+
+def test_accepting_a_pending_booking_confirms_it_and_fills_the_slot(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    shift, booking_id = _pending_booking(client, auth_headers, registered_admin["facility"], db_session)
+
+    response = client.post(f"/api/v1/admin/bookings/{booking_id}/accept", headers=admin_headers)
+    assert response.status_code == 200, response.text
+    assert response.json()["status"] == "confirmed"
+
+    detail = client.get(f"/api/v1/admin/shifts/{shift.id}", headers=admin_headers).json()
+    assert detail["slotsFilled"] == 1
+    assert detail["status"] == "filled"
+
+    notes = client.get("/api/v1/notifications", headers=auth_headers).json()
+    assert any(n["title"] == "Application confirmed" for n in notes["items"])
+
+    # Accepting twice is refused.
+    again = client.post(f"/api/v1/admin/bookings/{booking_id}/accept", headers=admin_headers)
+    assert again.status_code == 409
+
+
+def test_bookings_permission_alone_can_accept(
+    client, auth_headers, registered_admin, db_session
+):
+    """Booking Details needs `bookings`, not `shifts`."""
+    from app.core.security import hash_password
+    from app.models.enums import FacilityRole, UserRole
+    from app.models.facility import FacilityMember
+    from app.models.user import User
+
+    user = User(email="bookings@example.com", full_name="Asha Rao",
+                hashed_password=hash_password("Password1"),
+                role=UserRole.facility_admin, is_verified=True)
+    db_session.add(user)
+    db_session.flush()
+    db_session.add(FacilityMember(facility_id=registered_admin["facility_id"], user_id=user.id,
+                                  facility_role=FacilityRole.manager, permissions="bookings"))
+    db_session.commit()
+    token = client.post("/api/v1/auth/login", json={
+        "email": "bookings@example.com", "password": "Password1"}).json()["accessToken"]
+
+    _, booking_id = _pending_booking(client, auth_headers, registered_admin["facility"], db_session)
+    response = client.post(f"/api/v1/admin/bookings/{booking_id}/accept",
+                           headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 200, response.text
+
+
+def test_cannot_accept_a_booking_once_the_shift_has_started(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    shift, booking_id = _pending_booking(client, auth_headers, registered_admin["facility"], db_session)
+    _start_shift(db_session, shift)
+
+    response = client.post(f"/api/v1/admin/bookings/{booking_id}/accept", headers=admin_headers)
+    assert response.status_code == 400
+    assert "already started" in response.json()["detail"]
