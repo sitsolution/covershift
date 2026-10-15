@@ -2,6 +2,7 @@ import React from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigatorScreenParams } from '@react-navigation/native';
+import { useTabBarStyle } from './tabBarStyle';
 import HomeStackNavigator, { HomeStackParamList } from './HomeStackNavigator';
 import ShiftsStackNavigator, { ShiftsStackParamList } from './ShiftsStackNavigator';
 import CalendarStackNavigator, { CalendarStackParamList } from './CalendarStackNavigator';
@@ -38,19 +39,13 @@ const SCREEN_MAP = {
 };
 
 export default function StaffNavigator() {
+  const tabBarStyle = useTabBarStyle();
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#DCE4EA',
-          height: 62,
-          paddingBottom: 6,
-          paddingTop: 6,
-        },
+        tabBarStyle,
       }}
     >
       {items.map(([ic, label, name]) => (

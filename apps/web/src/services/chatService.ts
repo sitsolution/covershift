@@ -41,6 +41,11 @@ const chatService = {
     return api.get<ChatRoomOut[]>('/chat/rooms').then(r => r.data);
   },
 
+  /** Admin: unread staff messages across all their rooms (sidebar dot). */
+  unreadCount(): Promise<number> {
+    return api.get<{ count: number }>('/chat/unread-count').then(r => r.data.count);
+  },
+
   /** Get a room by its numeric ID (used for notification deep-link) */
   getRoomById(roomId: number): Promise<ChatRoomOut> {
     return api.get<ChatRoomOut>(`/chat/rooms/by-id/${roomId}`).then(r => r.data);
@@ -53,5 +58,9 @@ const chatService = {
       .then(r => r.data);
   },
 };
+
+/** Fired when a chat is opened (and so marked read), so the sidebar dot can
+ *  refresh at once instead of waiting for its next poll. */
+export const CHAT_READ_EVENT = 'chat-read';
 
 export default chatService;

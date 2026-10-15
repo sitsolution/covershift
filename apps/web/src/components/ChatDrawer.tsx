@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import chatService, { DirectMessageOut } from '../services/chatService';
+import chatService, { CHAT_READ_EVENT, DirectMessageOut } from '../services/chatService';
 
 interface Props {
   staffId: number;
@@ -51,6 +51,8 @@ export default function ChatDrawer({ staffId, staffName, onClose }: Props) {
       .then((history) => {
         if (cancelled || !history) return;
         setMessages(history.messages);
+        // Loading history marks the staff member's messages read.
+        window.dispatchEvent(new Event(CHAT_READ_EVENT));
       })
       .catch((err) => {
         if (cancelled) return;

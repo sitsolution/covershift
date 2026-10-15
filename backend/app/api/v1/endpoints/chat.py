@@ -162,6 +162,26 @@ def list_rooms(
     return [_room_out(r, current_user.id, db) for r in rooms]
 
 
+@router.get("/unread-count")
+def admin_unread_count(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_facility_admin),
+):
+    """Unread staff messages across this admin's conversations — drives the dot
+    on the sidebar's Messages tab. One cheap count, polled by the web app."""
+    count = (
+        db.query(func.count(DirectMessage.id))
+        .join(ChatRoom, DirectMessage.room_id == ChatRoom.id)
+        .filter(
+            ChatRoom.admin_id == current_user.id,
+            DirectMessage.sender_id != current_user.id,
+            DirectMessage.is_read.is_(False),
+        )
+        .scalar()
+    ) or 0
+    return {"count": count}
+
+
 @router.get("/my-rooms", response_model=List[ChatRoomOut])
 def staff_list_rooms(
     db: Session = Depends(get_db),

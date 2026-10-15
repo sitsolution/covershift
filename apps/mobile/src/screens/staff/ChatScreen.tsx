@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -12,6 +12,7 @@ import {
   StatusBar,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { BottomTabBarHeightContext } from '@react-navigation/bottom-tabs';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RouteProp } from '@react-navigation/native';
 import { HomeStackParamList } from '../../navigation/HomeStackNavigator';
@@ -37,6 +38,7 @@ function initials(name: string | undefined | null): string {
 }
 
 export default function ChatScreen({ navigation, route }: Props) {
+  const insideTabs = useContext(BottomTabBarHeightContext) !== undefined;
   const { roomKey, adminName } = route.params;
 
   const [messages, setMessages] = useState<DirectMessageOut[]>([]);
@@ -168,7 +170,8 @@ export default function ChatScreen({ navigation, route }: Props) {
         )}
 
         {/* Input bar — KAV pushes this up when keyboard opens */}
-        <SafeAreaView edges={['bottom']} style={styles.inputSafe}>
+        {/* With the tab bar showing below, it already clears the phone's nav bar. */}
+        <SafeAreaView edges={insideTabs ? [] : ['bottom']} style={styles.inputSafe}>
           <View style={styles.inputRow}>
             <TextInput
               style={styles.input}

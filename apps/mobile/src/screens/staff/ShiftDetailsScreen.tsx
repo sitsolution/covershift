@@ -17,6 +17,7 @@ import { ShiftsStackParamList } from '../../navigation/ShiftsStackNavigator';
 import shiftService from '../../services/shiftService';
 import { ShiftDetail } from '../../services/shiftService';
 import { shiftDateRange } from '../../utils/shiftDates';
+import { useTabBarStyle } from '../../navigation/tabBarStyle';
 
 type Props = {
   navigation: NativeStackNavigationProp<ShiftsStackParamList, 'ShiftDetails'>;
@@ -54,16 +55,12 @@ export default function ShiftDetailsScreen({ navigation, route }: Props) {
   const [favorite, setFavorite] = useState(false);
   const [toast, setToast] = useState({ visible: false, message: '', type: 'success' as 'success' | 'error' | 'info' });
 
+  const tabBarStyle = useTabBarStyle();
   useFocusEffect(() => {
     const parent = navigation.getParent();
     parent?.setOptions({ tabBarStyle: { display: 'none' } });
     return () => {
-      parent?.setOptions({
-        tabBarStyle: {
-          backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#DCE4EA',
-          height: 62, paddingBottom: 6, paddingTop: 6,
-        },
-      });
+      parent?.setOptions({ tabBarStyle });
     };
   });
 
@@ -140,7 +137,9 @@ export default function ShiftDetailsScreen({ navigation, route }: Props) {
   const roleLabel = ROLE_LABELS[shift.role] ?? shift.role;
 
   return (
-    <Screen style={styles.container}>
+    // The tab bar is hidden here, so the Apply footer must clear the phone's
+    // navigation bar itself.
+    <Screen style={styles.container} edges={['top', 'right', 'bottom', 'left']}>
       {/* Appbar */}
       <View style={styles.appbar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()} activeOpacity={0.8}>

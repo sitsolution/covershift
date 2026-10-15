@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import { NavLink } from 'react-router-dom';
+import chatService, { CHAT_READ_EVENT } from '../../services/chatService';
 import { useAuth } from '../../store/auth';
 
 // permission: null means always visible (no permission required)
@@ -15,7 +17,22 @@ const NAV: { icon: string; label: string; to: string; permission: string | null 
 ];
 
 export default function Sidebar() {
-  const { role, permissions } = useAuth();
+  const { role, permissions, accessToken } = useAuth();
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  // Dot on Messages: poll like the notification bell, and refresh at once
+  // when a chat is opened and marked read.
+  useEffect(() => {
+    if (!accessToken) return;
+    const fetchCount = () => chatService.unreadCount().then(setUnreadMessages).catch(() => {});
+    fetchCount();
+    const timer = setInterval(fetchCount, 30_000);
+    window.addEventListener(CHAT_READ_EVENT, fetchCount);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener(CHAT_READ_EVENT, fetchCount);
+    };
+  }, [accessToken]);
 
   // super_admin (platform) sees everything; facility_admin sees based on permissions
   const canSee = (permission: string | null) => {
@@ -47,6 +64,13 @@ export default function Sidebar() {
           >
             <span className="text-[14px] w-4 text-center">{icon}</span>
             {label}
+            {to === '/messages' && unreadMessages > 0 && (
+              <span
+                className="ml-auto w-[8px] h-[8px] rounded-full bg-urgent"
+                aria-label={`${unreadMessages} unread message${unreadMessages === 1 ? '' : 's'}`}
+                title={`${unreadMessages} unread`}
+              />
+            )}
           </NavLink>
         ))}
       </nav>
