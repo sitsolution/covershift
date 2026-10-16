@@ -430,7 +430,7 @@ export default function CreateShift() {
         <div>
           <Panel title="Compensation">
             <FormField
-              label="Pay Rate (per shift)"
+              label="Pay Rate per shift"
               required
               placeholder="9500"
               value={payRate}
@@ -438,7 +438,7 @@ export default function CreateShift() {
               onChange={(e) => { setPayRate(e.target.value); clearFieldError('payRate'); }}
             />
             <FormField
-              label="Overtime Rate (per hour, optional)"
+              label="Overtime Rate per hour (optional)"
               placeholder="1200"
               value={overtimeRate}
               error={fieldErrors.overtimeRate}
