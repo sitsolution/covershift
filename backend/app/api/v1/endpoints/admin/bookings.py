@@ -1,6 +1,6 @@
 import csv
 import io
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -17,6 +17,7 @@ from app.models.enums import (
     ApplicationStatus,
     NotificationCategory,
     PaymentStatus,
+    UserRole,
 )
 from app.models.payment import Payment
 from app.models.shift import Shift
@@ -35,7 +36,9 @@ from app.services.activity_log import log_activity
 from app.services.labels import role_label
 from app.services.notifications import notify
 
-from .common import as_aware, booking_display_status, booking_reference, now_ist, shift_reference
+from .common import (
+    as_aware, booking_display_status, booking_reference, filter_shift_dates, now_ist, shift_reference,
+)
 from .shifts import confirm_application
 
 router = APIRouter()
@@ -118,6 +121,9 @@ def list_bookings(
     admin: AdminContext = Depends(require_admin(AdminPermission.bookings)),
     tab: str = Query("all", pattern="^(all|pending|confirmed|upcoming|completed|cancelled)$"),
     search: Optional[str] = None,
+    role: Optional[UserRole] = None,
+    date_from: Optional[date] = Query(None, alias="dateFrom", description="Shift date, inclusive"),
+    date_to: Optional[date] = Query(None, alias="dateTo", description="Shift date, inclusive"),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: Optional[str] = Query(None, alias="sortBy", pattern="^(booked_on|status|shift|staff)$"),
@@ -134,9 +140,14 @@ def list_bookings(
         )
         user_joined = True
 
+    if role:
+        query = query.filter(Shift.role == role)
+    query = filter_shift_dates(query, date_from, date_to)
+
     # "upcoming" and "confirmed" share a stored status and split on the shift's
     # start time, so they are filtered in SQL rather than after pagination.
-    now = datetime.now(timezone.utc)
+    # Shift times are naive IST, so compare against IST now.
+    now = now_ist()
     if tab == "upcoming":
         query = query.filter(
             Application.status == ApplicationStatus.confirmed, Shift.start_time > now
@@ -202,9 +213,17 @@ def _tab_counts(admin: AdminContext) -> dict[str, int]:
 def export_bookings(
     admin: AdminContext = Depends(require_admin(AdminPermission.bookings)),
     tab: str = Query("all", pattern="^(all|pending|confirmed|upcoming|completed|cancelled)$"),
+    role: Optional[UserRole] = None,
+    date_from: Optional[date] = Query(None, alias="dateFrom"),
+    date_to: Optional[date] = Query(None, alias="dateTo"),
 ):
-    """'Export to CSV'. Streams so a large export never buffers fully in memory."""
-    applications = _base_query(admin).order_by(Application.applied_at.desc()).all()
+    """'Export to CSV'. Streams so a large export never buffers fully in memory.
+    Takes the list's role and date filters, so the file matches the screen."""
+    query = _base_query(admin)
+    if role:
+        query = query.filter(Shift.role == role)
+    query = filter_shift_dates(query, date_from, date_to)
+    applications = query.order_by(Application.applied_at.desc()).all()
     now = datetime.now(timezone.utc)
 
     def _matches(application: Application) -> bool:

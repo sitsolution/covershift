@@ -7,6 +7,7 @@ import Pagination from '../components/ui/Pagination';
 import adminShiftsService, { AdminShiftRow } from '../services/adminShiftsService';
 import SortTh from '../components/ui/SortTh';
 import DateRangePicker from '../components/ui/DateRangePicker';
+import { STAFF_ROLE_OPTIONS } from '../utils/staffRoles';
 import { shiftDateRange } from '../utils/shiftDates';
 
 const PAGE_SIZE = 25;
@@ -43,6 +44,7 @@ export default function ShiftsManagement() {
   const [status, setStatus] = useState('');
   const [location, setLocation] = useState('');
   const [specialty, setSpecialty] = useState('');
+  const [role, setRole] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [sortBy, setSortBy] = useState('date');
@@ -67,6 +69,7 @@ export default function ShiftsManagement() {
         status: status || undefined,
         location: location || undefined,
         specialty: specialty || undefined,
+        role: role || undefined,
         dateFrom: dateFrom || undefined,
         dateTo: dateTo || undefined,
         limit: PAGE_SIZE,
@@ -81,10 +84,10 @@ export default function ShiftsManagement() {
     } finally {
       setLoading(false);
     }
-  }, [search, status, location, specialty, dateFrom, dateTo, page, sortBy, sortOrder]);
+  }, [search, status, location, specialty, role, dateFrom, dateTo, page, sortBy, sortOrder]);
 
   // reset to page 1 when filters change
-  useEffect(() => { setPage(1); }, [search, status, location, specialty, dateFrom, dateTo]);
+  useEffect(() => { setPage(1); }, [search, status, location, specialty, role, dateFrom, dateTo]);
 
   // debounce search + reload
   useEffect(() => {
@@ -92,7 +95,7 @@ export default function ShiftsManagement() {
     return () => clearTimeout(t);
   }, [load, page]);
 
-  const hasFilters = search || status || location || specialty || dateFrom || dateTo;
+  const hasFilters = search || status || location || specialty || role || dateFrom || dateTo;
 
   return (
     <Layout>
@@ -132,6 +135,10 @@ export default function ShiftsManagement() {
             <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>
           ))}
         </select>
+        <select value={role} onChange={(e) => setRole(e.target.value)} className={CHIP}>
+          <option value="">Role ▾</option>
+          {STAFF_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
         <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className={CHIP}>
           <option value="">Specialty ▾</option>
           {['Emergency Medicine', 'General Medicine', 'Pediatrics', 'Anaesthesia'].map((o) => <option key={o}>{o}</option>)}
@@ -149,7 +156,7 @@ export default function ShiftsManagement() {
         />
         {hasFilters && (
           <button
-            onClick={() => { setSearch(''); setStatus(''); setLocation(''); setSpecialty(''); setDateFrom(''); setDateTo(''); }}
+            onClick={() => { setSearch(''); setStatus(''); setLocation(''); setSpecialty(''); setRole(''); setDateFrom(''); setDateTo(''); }}
             className="text-[11px] font-semibold text-urgent hover:underline"
           >
             Clear filters

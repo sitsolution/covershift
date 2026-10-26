@@ -341,3 +341,14 @@ def test_only_drafts_can_be_deleted(client, admin_headers, registered_admin, db_
     assert client.delete(
         f"/api/v1/admin/shifts/{draft['id']}", headers=admin_headers
     ).status_code == 200
+
+
+def test_shift_date_filter_includes_the_whole_last_day(client, admin_headers, registered_admin, db_session):
+    """dateTo used to mean midnight at the start of that day, hiding its shifts."""
+    shift = make_shift(db_session, registered_admin["facility"], start_hour=15)
+    day = shift.start_time.date().isoformat()
+    body = client.get("/api/v1/admin/shifts", headers=admin_headers,
+                      params={"dateFrom": day, "dateTo": day}).json()
+    assert [row["id"] for row in body["items"]] == [shift.id]
+    assert client.get("/api/v1/admin/shifts", headers=admin_headers,
+                      params={"role": "nurse"}).json()["total"] == 0

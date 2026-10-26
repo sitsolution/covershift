@@ -1,6 +1,6 @@
 """Helpers shared by the admin endpoints."""
 
-from datetime import datetime, timezone, timedelta
+from datetime import date, datetime, timezone, timedelta
 
 IST = timezone(timedelta(hours=5, minutes=30))
 from typing import List, Optional
@@ -103,6 +103,19 @@ def csv_or_none(values: Optional[List[str]]) -> Optional[str]:
     if values is None:
         return None
     return ", ".join(v.strip() for v in values if v and v.strip()) or None
+
+
+def filter_shift_dates(query, date_from: Optional[date], date_to: Optional[date]):
+    """Limit a query joined to Shift to shifts starting within the date range.
+
+    Both ends are whole days and inclusive: "to 15 Oct" keeps shifts starting
+    any time on 15 Oct, not just at midnight.
+    """
+    if date_from:
+        query = query.filter(Shift.start_time >= datetime.combine(date_from, datetime.min.time()))
+    if date_to:
+        query = query.filter(Shift.start_time < datetime.combine(date_to + timedelta(days=1), datetime.min.time()))
+    return query
 
 
 def facility_staff_ids(admin):

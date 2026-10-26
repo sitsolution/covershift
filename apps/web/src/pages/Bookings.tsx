@@ -8,8 +8,13 @@ import Pagination from '../components/ui/Pagination';
 import adminBookingsService, { BookingRow } from '../services/adminBookingsService';
 import SortTh from '../components/ui/SortTh';
 import ChatDrawer from '../components/ChatDrawer';
+import DateRangePicker from '../components/ui/DateRangePicker';
+import { STAFF_ROLE_OPTIONS } from '../utils/staffRoles';
 
 const PAGE_SIZE = 25;
+
+// Same chip style as the Shifts filter row.
+const CHIP = 'bg-white border border-line rounded-sm px-[11px] py-[6px] text-[11px] font-semibold text-slate cursor-pointer inline-flex items-center gap-[6px] select-none hover:border-navy-2 transition-colors outline-none appearance-none';
 
 const TABS = ['all', 'pending', 'confirmed', 'upcoming', 'completed', 'cancelled'];
 const TAB_LABELS: Record<string, string> = {
@@ -45,6 +50,11 @@ export default function Bookings() {
   const [loading, setLoading] = useState(true);
   const [sortBy, setSortBy] = useState('booked_on');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [role, setRole] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
+  const filters = { role: role || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined };
+  const hasFilters = !!(role || dateFrom || dateTo);
 
   const handleSort = (col: string) => {
     if (col === sortBy) {
@@ -59,16 +69,19 @@ export default function Bookings() {
   const load = useCallback(async (tab: string, p: number) => {
     setLoading(true);
     try {
-      const res = await adminBookingsService.listBookings(tab, undefined, PAGE_SIZE, (p - 1) * PAGE_SIZE, sortBy, sortOrder);
+      const res = await adminBookingsService.listBookings(
+        tab, undefined, PAGE_SIZE, (p - 1) * PAGE_SIZE, sortBy, sortOrder,
+        { role: role || undefined, dateFrom: dateFrom || undefined, dateTo: dateTo || undefined },
+      );
       setBookings(res.items);
       setCounts(res.counts);
       setTotal(res.total);
     } catch {} finally {
       setLoading(false);
     }
-  }, [sortBy, sortOrder]);
+  }, [sortBy, sortOrder, role, dateFrom, dateTo]);
 
-  useEffect(() => { setPage(1); }, [activeTab]);
+  useEffect(() => { setPage(1); }, [activeTab, role, dateFrom, dateTo]);
   useEffect(() => { load(activeTab, page); }, [load, activeTab, page]);
 
   const tabLabels = TABS.map(t => counts[t] != null ? `${TAB_LABELS[t]} (${counts[t]})` : TAB_LABELS[t]);
@@ -82,7 +95,7 @@ export default function Bookings() {
           <p className="text-[11.5px] text-slate mb-4">{loading ? '…' : `${total} bookings`}</p>
         </div>
         <button
-          onClick={() => adminBookingsService.exportCsv(activeTab)}
+          onClick={() => adminBookingsService.exportCsv(activeTab, filters)}
           className="border-[1.5px] border-navy text-navy text-[11.5px] font-bold px-3 py-[7px] rounded-[8px] bg-transparent"
         >
           ⬇ Export to CSV
@@ -97,6 +110,26 @@ export default function Bookings() {
           if (idx >= 0) setActiveTab(TABS[idx]);
         }}
       />
+
+      {/* Filter Row — role and shift date */}
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
+        <select value={role} onChange={(e) => setRole(e.target.value)} className={CHIP}>
+          <option value="">Role ▾</option>
+          {STAFF_ROLE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+        <DateRangePicker
+          value={{ dateFrom, dateTo }}
+          onChange={({ dateFrom: f, dateTo: t }) => { setDateFrom(f); setDateTo(t); }}
+        />
+        {hasFilters && (
+          <button
+            onClick={() => { setRole(''); setDateFrom(''); setDateTo(''); }}
+            className="text-[11px] font-semibold text-urgent hover:underline"
+          >
+            Clear filters
+          </button>
+        )}
+      </div>
 
       <Panel>
         <div className="overflow-hidden rounded-[10px] border border-line">

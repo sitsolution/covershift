@@ -14,8 +14,10 @@ interface Props {
 const DAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
+/** Local YYYY-MM-DD. toISOString() would give the UTC date — yesterday in IST
+ *  until 5:30 AM. */
 function toYMD(d: Date) {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 function parseYMD(s: string): Date {
@@ -23,12 +25,69 @@ function parseYMD(s: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function formatLabel(from: string, to: string) {
-  if (!from && !to) return 'Date Range ▾';
+function addDays(d: Date, n: number): Date {
+  const copy = new Date(d);
+  copy.setDate(copy.getDate() + n);
+  return copy;
+}
+
+type Preset = { label: string; range: () => DateRange };
+
+/** Quick ranges. Shifts mostly lie ahead, so upcoming ranges sit alongside the
+ *  usual past ones. Weeks start on Monday. */
+const PRESETS: Preset[] = [
+  { label: 'Today', range: () => { const t = toYMD(new Date()); return { dateFrom: t, dateTo: t }; } },
+  { label: 'Yesterday', range: () => { const y = toYMD(addDays(new Date(), -1)); return { dateFrom: y, dateTo: y }; } },
+  { label: 'Tomorrow', range: () => { const t = toYMD(addDays(new Date(), 1)); return { dateFrom: t, dateTo: t }; } },
+  { label: 'This Week', range: () => {
+    const now = new Date();
+    const monday = addDays(now, -((now.getDay() + 6) % 7));
+    return { dateFrom: toYMD(monday), dateTo: toYMD(addDays(monday, 6)) };
+  } },
+  { label: 'Last 7 Days', range: () => ({ dateFrom: toYMD(addDays(new Date(), -6)), dateTo: toYMD(new Date()) }) },
+  { label: 'Next 7 Days', range: () => ({ dateFrom: toYMD(new Date()), dateTo: toYMD(addDays(new Date(), 6)) }) },
+  { label: 'This Month', range: () => {
+    const now = new Date();
+    return {
+      dateFrom: toYMD(new Date(now.getFullYear(), now.getMonth(), 1)),
+      dateTo: toYMD(new Date(now.getFullYear(), now.getMonth() + 1, 0)),
+    };
+  } },
+  { label: 'Last Month', range: () => {
+    const now = new Date();
+    return {
+      dateFrom: toYMD(new Date(now.getFullYear(), now.getMonth() - 1, 1)),
+      dateTo: toYMD(new Date(now.getFullYear(), now.getMonth(), 0)),
+    };
+  } },
+  { label: 'Next Month', range: () => {
+    const now = new Date();
+    return {
+      dateFrom: toYMD(new Date(now.getFullYear(), now.getMonth() + 1, 1)),
+      dateTo: toYMD(new Date(now.getFullYear(), now.getMonth() + 2, 0)),
+    };
+  } },
+  { label: 'Last 30 Days', range: () => ({ dateFrom: toYMD(addDays(new Date(), -29)), dateTo: toYMD(new Date()) }) },
+];
+
+/** The preset a range matches, if any — so the chip can read "Last Month". */
+function matchingPreset(value: DateRange): string | null {
+  if (!value.dateFrom || !value.dateTo) return null;
+  const hit = PRESETS.find((p) => {
+    const r = p.range();
+    return r.dateFrom === value.dateFrom && r.dateTo === value.dateTo;
+  });
+  return hit ? hit.label : null;
+}
+
+function formatLabel(value: DateRange): string {
+  const { dateFrom: from, dateTo: to } = value;
+  const preset = matchingPreset(value);
+  if (preset) return preset;
   const fmt = (s: string) => parseYMD(s).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-  if (from && to) return `${fmt(from)} – ${fmt(to)} ✕`;
-  if (from) return `From ${fmt(from)} ▾`;
-  return 'Date Range ▾';
+  if (from && to) return from === to ? fmt(from) : `${fmt(from)} – ${fmt(to)}`;
+  if (from) return `From ${fmt(from)}`;
+  return 'Date Range';
 }
 
 export default function DateRangePicker({ value, onChange, className = '' }: Props) {
@@ -53,17 +112,31 @@ export default function DateRangePicker({ value, onChange, className = '' }: Pro
   }, []);
 
   const hasValue = !!(value.dateFrom || value.dateTo);
+  const activePreset = matchingPreset(value);
+
+  function showMonthOf(ymd: string) {
+    const d = parseYMD(ymd);
+    setViewYear(d.getFullYear());
+    setViewMonth(d.getMonth());
+  }
 
   function handleChipClick() {
-    if (hasValue) {
-      // clicking the ✕ clears; clicking the label opens
-    }
+    // Open on the selected range rather than always on the current month.
+    if (!open && value.dateFrom) showMonthOf(value.dateFrom);
     setOpen(o => !o);
   }
 
   function handleClear(e: React.MouseEvent) {
     e.stopPropagation();
     onChange({ dateFrom: '', dateTo: '' });
+    setSelecting('start');
+    setOpen(false);
+  }
+
+  function applyPreset(preset: Preset) {
+    const range = preset.range();
+    onChange(range);
+    showMonthOf(range.dateFrom);
     setSelecting('start');
     setOpen(false);
   }
@@ -96,6 +169,7 @@ export default function DateRangePicker({ value, onChange, className = '' }: Pro
   // Build calendar days
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+  const todayYMD = toYMD(today);
 
   function dayState(ymd: string) {
     const { dateFrom, dateTo } = value;
@@ -105,7 +179,7 @@ export default function DateRangePicker({ value, onChange, className = '' }: Pro
     const isStart = ymd === dateFrom;
     const isEnd = ymd === dateTo;
     const inRange = lo && hi && ymd > lo && ymd < hi;
-    const isToday = ymd === toYMD(today);
+    const isToday = ymd === todayYMD;
     return { isStart, isEnd, inRange: !!inRange, isToday };
   }
 
@@ -119,9 +193,7 @@ export default function DateRangePicker({ value, onChange, className = '' }: Pro
         className={`${chipBase} ${chipActive}`}
         onClick={handleChipClick}
       >
-        <span>
-          {hasValue ? formatLabel(value.dateFrom, value.dateTo) : 'Date Range ▾'}
-        </span>
+        <span>{hasValue ? formatLabel(value) : 'Date Range ▾'}</span>
         {hasValue && (
           <span
             onClick={handleClear}
@@ -133,75 +205,95 @@ export default function DateRangePicker({ value, onChange, className = '' }: Pro
         )}
       </div>
 
-      {/* Dropdown calendar */}
+      {/* Dropdown: quick ranges + calendar */}
       {open && (
-        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-line rounded-[12px] shadow-lg p-4 w-[272px]">
-          {/* Month nav */}
-          <div className="flex items-center justify-between mb-3">
-            <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-slate hover:text-navy text-sm font-bold">‹</button>
-            <span className="text-[12.5px] font-extrabold text-ink font-display">
-              {MONTHS[viewMonth]} {viewYear}
-            </span>
-            <button onClick={nextMonth} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-slate hover:text-navy text-sm font-bold">›</button>
-          </div>
-
-          {/* Day headers */}
-          <div className="grid grid-cols-7 mb-1">
-            {DAYS.map(d => (
-              <div key={d} className="text-center text-[9.5px] font-bold text-slate py-1">{d}</div>
+        <div className="absolute top-full left-0 mt-1 z-50 bg-white border border-line rounded-[12px] shadow-lg flex">
+          {/* Quick ranges */}
+          <div className="w-[128px] border-r border-line py-2 flex flex-col">
+            {PRESETS.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => applyPreset(p)}
+                className={`text-left px-3 py-[6px] text-[11.5px] font-semibold transition-colors ${
+                  activePreset === p.label ? 'bg-sky text-navy' : 'text-ink hover:bg-paper'
+                }`}
+              >
+                {p.label}
+              </button>
             ))}
+            {hasValue && (
+              <button
+                onClick={handleClear}
+                className="mt-auto text-left px-3 py-[6px] text-[11.5px] font-semibold text-urgent hover:bg-paper"
+              >
+                Clear
+              </button>
+            )}
           </div>
 
-          {/* Day cells */}
-          <div className="grid grid-cols-7">
-            {/* empty leading cells */}
-            {Array(firstDay).fill(null).map((_, i) => <div key={`e${i}`} />)}
+          {/* Calendar */}
+          <div className="p-4 w-[272px]">
+            {/* Month nav */}
+            <div className="flex items-center justify-between mb-3">
+              <button onClick={prevMonth} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-slate hover:text-navy text-sm font-bold">‹</button>
+              <span className="text-[12.5px] font-extrabold text-ink font-display">
+                {MONTHS[viewMonth]} {viewYear}
+              </span>
+              <button onClick={nextMonth} className="w-6 h-6 flex items-center justify-center rounded-full hover:bg-sky text-slate hover:text-navy text-sm font-bold">›</button>
+            </div>
 
-            {Array.from({ length: daysInMonth }, (_, i) => {
-              const day = i + 1;
-              const ymd = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-              const { isStart, isEnd, inRange, isToday } = dayState(ymd);
-              const isSelected = isStart || isEnd;
+            {/* Day headers */}
+            <div className="grid grid-cols-7 mb-1">
+              {DAYS.map(d => (
+                <div key={d} className="text-center text-[9.5px] font-bold text-slate py-1">{d}</div>
+              ))}
+            </div>
 
-              let bg = '';
-              let textColor = 'text-ink';
-              let rounded = 'rounded-full';
+            {/* Day cells */}
+            <div className="grid grid-cols-7">
+              {/* empty leading cells */}
+              {Array(firstDay).fill(null).map((_, i) => <div key={`e${i}`} />)}
 
-              if (isSelected) {
-                bg = 'bg-navy';
-                textColor = 'text-white';
-              } else if (inRange) {
-                bg = 'bg-sky';
-                textColor = 'text-navy';
-                rounded = 'rounded-none';
-              } else if (isToday) {
-                textColor = 'text-navy font-bold';
-              }
+              {Array.from({ length: daysInMonth }, (_, i) => {
+                const day = i + 1;
+                const ymd = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const { isStart, isEnd, inRange, isToday } = dayState(ymd);
+                const isSelected = isStart || isEnd;
 
-              // Round range edges
-              if (inRange) {
-                if (isStart) rounded = 'rounded-l-full';
-                if (isEnd) rounded = 'rounded-r-full';
-              }
+                let bg = '';
+                let textColor = 'text-ink';
+                let rounded = 'rounded-full';
 
-              return (
-                <div
-                  key={ymd}
-                  className={`flex items-center justify-center h-8 text-[11px] cursor-pointer ${rounded} ${bg} ${textColor} hover:bg-navy hover:text-white transition-colors`}
-                  onClick={() => handleDayClick(ymd)}
-                  onMouseEnter={() => selecting === 'end' && setHovered(ymd)}
-                  onMouseLeave={() => setHovered('')}
-                >
-                  {day}
-                </div>
-              );
-            })}
+                if (isSelected) {
+                  bg = 'bg-navy';
+                  textColor = 'text-white';
+                } else if (inRange) {
+                  bg = 'bg-sky';
+                  textColor = 'text-navy';
+                  rounded = 'rounded-none';
+                } else if (isToday) {
+                  textColor = 'text-navy font-bold';
+                }
+
+                return (
+                  <div
+                    key={ymd}
+                    className={`flex items-center justify-center h-8 text-[11px] cursor-pointer ${rounded} ${bg} ${textColor} hover:bg-navy hover:text-white transition-colors`}
+                    onClick={() => handleDayClick(ymd)}
+                    onMouseEnter={() => selecting === 'end' && setHovered(ymd)}
+                    onMouseLeave={() => setHovered('')}
+                  >
+                    {day}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer hint */}
+            <p className="text-[10px] text-slate text-center mt-3">
+              {selecting === 'start' ? 'Pick a quick range, or click a start date' : 'Click to set end date'}
+            </p>
           </div>
-
-          {/* Footer hint */}
-          <p className="text-[10px] text-slate text-center mt-3">
-            {selecting === 'start' ? 'Click to set start date' : 'Click to set end date'}
-          </p>
         </div>
       )}
     </div>

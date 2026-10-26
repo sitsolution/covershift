@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import List, Optional
 
@@ -41,6 +41,7 @@ from .common import (
     as_aware,
     assigned_staff_for,
     csv_or_none,
+    filter_shift_dates,
     now_ist,
     pending_counts_for,
     shift_display_status,
@@ -145,8 +146,8 @@ def list_shifts(
     location: Optional[str] = None,
     specialty: Optional[str] = None,
     role: Optional[UserRole] = None,
-    date_from: Optional[datetime] = Query(None, alias="dateFrom"),
-    date_to: Optional[datetime] = Query(None, alias="dateTo"),
+    date_from: Optional[date] = Query(None, alias="dateFrom"),
+    date_to: Optional[date] = Query(None, alias="dateTo"),
     limit: int = Query(25, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: Optional[str] = Query(None, alias="sortBy", pattern="^(date|status|specialty|location)$"),
@@ -185,10 +186,7 @@ def list_shifts(
         query = query.filter(Shift.specialty == specialty)
     if role:
         query = query.filter(Shift.role == role)
-    if date_from:
-        query = query.filter(Shift.start_time >= date_from)
-    if date_to:
-        query = query.filter(Shift.start_time <= date_to)
+    query = filter_shift_dates(query, date_from, date_to)
 
     # "filled"/"open"/"pending" are derived, so they filter on the underlying
     # columns rather than on Shift.status alone.

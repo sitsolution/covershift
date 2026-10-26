@@ -269,3 +269,27 @@ def test_cannot_accept_a_booking_once_the_shift_has_started(
     response = client.post(f"/api/v1/admin/bookings/{booking_id}/accept", headers=admin_headers)
     assert response.status_code == 400
     assert "already started" in response.json()["detail"]
+
+
+def test_bookings_filter_by_role_and_shift_date(
+    client, admin_headers, auth_headers, registered_admin, db_session
+):
+    from datetime import date, timedelta
+
+    shift, _ = _pending_booking(client, auth_headers, registered_admin["facility"], db_session)
+    day = shift.start_time.date().isoformat()
+    other_day = (shift.start_time.date() + timedelta(days=1)).isoformat()
+
+    def total(**params):
+        return client.get("/api/v1/admin/bookings", headers=admin_headers, params=params).json()["total"]
+
+    assert total(role="doctor") == 1
+    assert total(role="nurse") == 0
+    # A one-day range includes shifts later that same day.
+    assert total(dateFrom=day, dateTo=day) == 1
+    assert total(dateFrom=other_day) == 0
+    assert total(dateTo=(date.fromisoformat(day) - timedelta(days=1)).isoformat()) == 0
+
+    csv_body = client.get("/api/v1/admin/bookings/export", headers=admin_headers,
+                          params={"role": "nurse"}).text
+    assert len(csv_body.strip().splitlines()) == 1, "header only when the role filter matches nothing"

@@ -55,10 +55,20 @@ export interface BookingListResponse {
   hasMore: boolean;
 }
 
+/** Role and shift-date filters on the Bookings list. Dates are YYYY-MM-DD, inclusive. */
+export interface BookingFilters {
+  role?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
 const adminBookingsService = {
-  listBookings: async (tab = 'all', search?: string, limit = 25, offset = 0, sortBy?: string, sortOrder?: string): Promise<BookingListResponse> => {
+  listBookings: async (
+    tab = 'all', search?: string, limit = 25, offset = 0, sortBy?: string, sortOrder?: string,
+    filters: BookingFilters = {},
+  ): Promise<BookingListResponse> => {
     const { data } = await api.get('/admin/bookings', {
-      params: { tab, search, limit, offset, sortBy, sortOrder },
+      params: { tab, search, limit, offset, sortBy, sortOrder, ...filters },
     });
     return data;
   },
@@ -94,9 +104,9 @@ const adminBookingsService = {
     return data;
   },
 
-  exportCsv: async (tab = 'all') => {
+  exportCsv: async (tab = 'all', filters: BookingFilters = {}) => {
     const { data } = await api.get('/admin/bookings/export', {
-      params: { tab },
+      params: { tab, ...filters },
       responseType: 'blob',
     });
     const url = URL.createObjectURL(new Blob([data], { type: 'text/csv' }));
