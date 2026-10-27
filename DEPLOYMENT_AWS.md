@@ -2,7 +2,7 @@
 
 Production runs in the client's AWS account, region **Asia Pacific (Mumbai) `ap-south-1`**.
 No secrets live in this file: passwords and API keys are only in the server's
-`backend/.env` and the AWS console.
+`backend/.env` and the AWS console
 
 ## What runs where
 
