@@ -1,0 +1,44 @@
+# AWS Amplify Hosting build settings for the two web apps in this monorepo.
+# Each Amplify app is created with "monorepo" on and its app root set to the
+# matching appRoot below; Amplify then builds only that entry.
+#
+# Installs run from the repo root (npm workspaces share one lockfile) and only
+# for the app being built, so the heavy mobile dependencies are skipped.
+version: 1
+applications:
+  - appRoot: apps/web
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm install 20 && nvm use 20
+            - (cd ../.. && npm ci -w @covershift/web)
+        build:
+          commands:
+            # VITE_API_URL comes from the Amplify app's environment variables.
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - ../../node_modules/**/*
+
+  - appRoot: apps/landing
+    frontend:
+      phases:
+        preBuild:
+          commands:
+            - nvm install 20 && nvm use 20
+            - (cd ../.. && npm ci -w @covershift/landing)
+        build:
+          commands:
+            - npm run build
+      artifacts:
+        baseDirectory: dist
+        files:
+          - '**/*'
+      cache:
+        paths:
+          - ../../node_modules/**/*
