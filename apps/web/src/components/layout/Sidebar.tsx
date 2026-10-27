@@ -45,11 +45,9 @@ export default function Sidebar() {
   return (
     <div className="w-[212px] flex-none bg-navy-3 flex flex-col" style={{ minHeight: '100vh' }}>
       {/* Brand */}
-      <div className="flex items-center gap-2 px-[18px] py-[18px] border-b border-white/10 mb-[10px]">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-          <path d="M2 12h4l2-7 4 14 2-9 2 5h6" stroke="#5FB4E0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-        </svg>
-        <span className="font-display font-extrabold text-[13.5px] text-white">Covershift · Admin</span>
+      <div className="flex flex-col gap-[6px] px-[18px] py-[16px] border-b border-white/10 mb-[10px]">
+        <img src="/brand/covershift-logo-dark.svg" alt="CoverShift" className="h-[30px] w-auto self-start" />
+        <span className="text-[10px] font-bold uppercase tracking-[0.12em] text-[#A9C2D3]">Admin</span>
       </div>
 
       {/* Nav items */}

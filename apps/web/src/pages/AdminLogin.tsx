@@ -43,11 +43,7 @@ export default function AdminLogin() {
       <div className="w-full max-w-[380px] mt-[60px] text-center">
 
         {/* Logo */}
-        <div className="w-[52px] h-[52px] rounded-[14px] bg-navy flex items-center justify-center mx-auto mb-4">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-            <path d="M2 12h4l2-7 4 14 2-9 2 5h6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
+        <img src="/brand/covershift-logo-light.svg" alt="CoverShift" className="h-[52px] w-auto mx-auto mb-4" />
 
         {/* Heading */}
         <h1 className="font-display font-extrabold text-[19px] text-ink mb-[4px]">Welcome back</h1>

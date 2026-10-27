@@ -1,8 +1,7 @@
 import React, { useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import Svg, { Path } from 'react-native-svg';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
 import { useFocusEffect } from '@react-navigation/native';
@@ -28,19 +27,13 @@ export default function SplashScreen({ navigation }: Props) {
     >
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
-          <View style={styles.logoBox}>
-            <Svg width={30} height={30} viewBox="0 0 24 24" fill="none">
-              <Path
-                d="M2 12h4l2-7 4 14 2-9 2 5h6"
-                stroke="#fff"
-                strokeWidth={2}
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </View>
-
-          <Text style={styles.title}>Covershift</Text>
+          {/* White-text logo for the navy background. */}
+          <Image
+            source={require('../../../assets/brand/logo-dark.png')}
+            style={styles.logo}
+            resizeMode="contain"
+            accessibilityLabel="CoverShift"
+          />
           <Text style={styles.tagline}>
             Cover every shift — doctors, nurses, OT technicians & housekeeping staff, all in one place.
           </Text>
@@ -81,20 +74,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: 30,
   },
-  logoBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#FFFFFF',
-    marginBottom: 8,
+  // The artwork is 2400×681 with built-in padding; keep its aspect ratio.
+  logo: {
+    width: 240,
+    height: 68,
+    marginBottom: 10,
   },
   tagline: {
     fontSize: 13,

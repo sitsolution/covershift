@@ -67,12 +67,8 @@ function DashboardMockup() {
         {/* Top bar */}
         <div className="bg-navy-3 px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-navy flex items-center justify-center">
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none">
-                <path d="M2 12h4l2-7 4 14 2-9 2 5h6" stroke="#5FB4E0" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-              </svg>
-            </div>
-            <span className="text-white text-[11px] font-bold">Covershift · Admin</span>
+            <img src="/brand/covershift-icon-on-dark.svg" alt="" className="w-5 h-5" />
+            <span className="text-white text-[11px] font-bold">CoverShift · Admin</span>
           </div>
           <div className="flex gap-1">
             {['#ff5f57','#ffbd2e','#28c840'].map(c => <div key={c} className="w-2 h-2 rounded-full" style={{background:c}}/>)}

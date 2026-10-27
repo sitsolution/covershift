@@ -18,8 +18,8 @@ self.addEventListener('push', function (event) {
   const title = payload.title || 'Coverline';
   const options = {
     body: payload.body || '',
-    icon: '/favicon.ico',
-    badge: '/favicon.ico',
+    icon: '/apple-touch-icon.png',
+    badge: '/favicon-48.png',
     data: payload.data || {},
     requireInteraction: false,
     tag: payload.data?.entity_type

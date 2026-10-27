@@ -25,15 +25,13 @@ export default function Navbar() {
     >
       <div className="container-lg flex items-center justify-between h-[68px] px-6 md:px-10 lg:px-16">
         {/* Logo */}
-        <a href="/" className="flex items-center gap-[10px] flex-shrink-0">
-          <div className="w-8 h-8 rounded-[9px] bg-navy flex items-center justify-center">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-              <path d="M2 12h4l2-7 4 14 2-9 2 5h6" stroke="#5FB4E0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </div>
-          <span className={`font-display font-extrabold text-[17px] tracking-tight transition-colors ${scrolled ? 'text-navy-3' : 'text-white'}`}>
-            Covershift
-          </span>
+        <a href="/" className="flex items-center flex-shrink-0" aria-label="CoverShift home">
+          {/* White-text logo over the dark hero, navy-text logo once the bar turns white. */}
+          <img
+            src={scrolled ? '/brand/covershift-logo-light.svg' : '/brand/covershift-logo-dark.svg'}
+            alt="CoverShift"
+            className="h-[38px] w-auto"
+          />
         </a>
 
         {/* Desktop nav */}

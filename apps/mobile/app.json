@@ -7,13 +7,14 @@
     "userInterfaceStyle": "light",
     "icon": "./assets/icon.png",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0F3D5C"
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.covershift.mobile"
+      "bundleIdentifier": "com.covershift.mobile",
+      "icon": "./assets/icon.png"
     },
     "android": {
       "package": "com.covershift.mobile",
@@ -24,7 +25,11 @@
         "WRITE_EXTERNAL_STORAGE",
         "READ_MEDIA_IMAGES",
         "READ_MEDIA_VIDEO"
-      ]
+      ],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#FFFFFF"
+      }
     },
     "androidStatusBar": {
       "barStyle": "light-content",

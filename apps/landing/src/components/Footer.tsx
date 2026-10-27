@@ -115,14 +115,7 @@ export default function Footer() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
             {/* Brand */}
             <div className="sm:col-span-2 lg:col-span-2">
-              <div className="flex items-center gap-[10px] mb-4">
-                <div className="w-8 h-8 rounded-[9px] bg-navy flex items-center justify-center">
-                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                    <path d="M2 12h4l2-7 4 14 2-9 2 5h6" stroke="#5FB4E0" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </div>
-                <span className="font-display font-extrabold text-[17px]">Covershift</span>
-              </div>
+              <img src="/brand/covershift-logo-dark.svg" alt="CoverShift" className="h-[40px] w-auto mb-4" />
               <p className="text-[13.5px] text-white/60 leading-relaxed max-w-[300px] mb-6">
                 India's smartest healthcare staffing platform — connecting hospitals with verified medical professionals instantly.
               </p>
