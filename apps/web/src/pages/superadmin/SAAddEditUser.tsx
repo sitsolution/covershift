@@ -185,7 +185,7 @@ export default function SAAddEditUser() {
       setSuccess(res.message);
     } catch {
       setShowResetModal(false);
-      setError('Failed to send reset email. Please try again.');
+      setError('Failed to send reset code. Please try again.');
     } finally {
       setResetting(false);
     }
@@ -419,8 +419,8 @@ export default function SAAddEditUser() {
       {showResetModal && (
         <Modal
           title="Reset password?"
-          message={`A password reset email will be sent to ${email}. They will need to follow the link in the email to set a new password.`}
-          confirmLabel="Send Reset Email"
+          message={`A 6-digit reset code will be emailed to ${email}. They can enter it under Forgot Password → "I already have a code" on the login screen to set a new password. The code expires in 10 minutes.`}
+          confirmLabel="Send Reset Code"
           confirmVariant="primary"
           loading={resetting}
           onConfirm={handleResetPassword}

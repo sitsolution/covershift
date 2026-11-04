@@ -45,6 +45,14 @@ export default function ForgotPassword() {
 
   const handleEmail = (e: React.FormEvent) => { e.preventDefault(); sendCode(); };
 
+  // A code sent earlier (e.g. by an admin) is still valid; requesting a new
+  // one would cancel it, so let the user go straight to entering it.
+  const haveCode = () => {
+    if (!email.trim()) { setError('Enter your email address first.'); return; }
+    setError('');
+    setStep('reset');
+  };
+
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: Record<string, string> = {};
@@ -81,7 +89,7 @@ export default function ForgotPassword() {
         </h1>
         <p className="text-[11.5px] text-slate mb-5">
           {step === 'email' && "Enter your account email and we'll send you a reset code."}
-          {step === 'reset' && `We've sent a 6-digit code to ${email}. It expires in 10 minutes.`}
+          {step === 'reset' && `Enter the 6-digit code sent to ${email}. It expires in 10 minutes.`}
           {step === 'done' && 'You can now log in with your new password.'}
         </p>
 
@@ -102,6 +110,11 @@ export default function ForgotPassword() {
                     className="w-full bg-navy text-white text-[13px] font-bold px-4 py-[11px] rounded-[10px] disabled:opacity-60">
               {loading ? 'Sending…' : 'Send Reset Code'}
             </button>
+            <p className="text-[11.5px] text-slate mt-3 text-center">
+              <button type="button" onClick={haveCode} className="font-bold text-navy-2">
+                I already have a code
+              </button>
+            </p>
           </form>
         )}
 

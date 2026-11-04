@@ -143,8 +143,15 @@ const authService = {
     await api.post('/auth/resend-otp', { email });
   },
 
-  forgotPassword: async (email: string): Promise<void> => {
-    await api.post('/auth/forgot-password', { email });
+  forgotPassword: async (
+    email: string,
+  ): Promise<{ resendAvailableInSeconds: number; debugOtp?: string | null }> => {
+    const { data } = await api.post('/auth/forgot-password', { email });
+    return data;
+  },
+
+  resetPassword: async (email: string, code: string, newPassword: string): Promise<void> => {
+    await api.post('/auth/reset-password', { email, code, newPassword });
   },
 
   changePassword: async (currentPassword: string, newPassword: string): Promise<void> => {

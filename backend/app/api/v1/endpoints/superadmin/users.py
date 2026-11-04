@@ -14,7 +14,7 @@ from app.api.v1.endpoints.superadmin.deps import require_super_admin
 from app.core.deps import get_db
 from app.core.security import hash_password
 from app.models.document import Document
-from app.models.enums import ActivityActionType, DocumentStatus, DocumentType, FacilityRole, UserRole
+from app.models.enums import ActivityActionType, DocumentStatus, DocumentType, FacilityRole, OtpPurpose, UserRole
 from app.models.facility import Facility, FacilityMember
 from app.models.user import User, UserSettings
 from app.schemas.base import CamelModel, MessageResponse
@@ -299,10 +299,10 @@ def reset_user_password(
     _: User = Depends(require_super_admin),
     db: Session = Depends(get_db),
 ):
-    """Trigger a password reset email for any user.
+    """Email the user a 6-digit password reset code.
 
-    Uses the same token flow as the self-service forgot-password endpoint,
-    so the user receives a reset link and sets their own new password.
+    Same code as the self-service Forgot Password flow, so the user enters it
+    under Forgot Password → "I already have a code" and sets their own password.
     """
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
@@ -313,8 +313,8 @@ def reset_user_password(
             detail="Cannot reset password for a deactivated account.",
         )
 
-    otp_service.issue_reset_token(db, user)
-    return MessageResponse(message=f"Password reset email sent to {user.email}")
+    otp_service.issue_code(db, user, OtpPurpose.password_reset)
+    return MessageResponse(message=f"Password reset code sent to {user.email}")
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

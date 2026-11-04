@@ -200,6 +200,29 @@ def test_forgot_password_emails_a_code_that_resets_the_password(client, register
     assert _reset(client, DOCTOR["email"], code, "Another123").status_code == 400
 
 
+def test_super_admin_reset_emails_a_code_the_user_can_redeem(
+    client, db_session, registered_doctor, platform_admin_headers, monkeypatch
+):
+    """Users → Edit → Reset Password emails the same 6-digit code as Forgot Password."""
+    from app.models.user import User
+    from app.services import otp as otp_service
+
+    sent = []
+    monkeypatch.setattr(otp_service, "deliver", lambda user, code, purpose: sent.append((user.email, code, purpose)))
+
+    user_id = db_session.query(User).filter(User.email == DOCTOR["email"]).one().id
+    res = client.post(f"/api/v1/superadmin/users/{user_id}/reset-password", headers=platform_admin_headers)
+    assert res.status_code == 200
+    assert len(sent) == 1
+    email, code, purpose = sent[0]
+    assert email == DOCTOR["email"] and purpose.value == "password_reset"
+
+    # Entered via Forgot Password → "I already have a code".
+    assert _reset(client, DOCTOR["email"], code).status_code == 200
+    assert client.post("/api/v1/auth/login",
+                       json={"email": DOCTOR["email"], "password": "NewPass123"}).status_code == 200
+
+
 def test_wrong_reset_code_is_rejected_and_counted(client, registered_doctor):
     code = _forgot(client, DOCTOR["email"]).json()["debugOtp"]
     wrong = "000000" if code != "000000" else "111111"
