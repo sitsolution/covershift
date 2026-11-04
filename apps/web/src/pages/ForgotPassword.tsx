@@ -5,6 +5,21 @@ import adminAuthService from '../services/adminAuthService';
 const INPUT = 'w-full px-3 py-[11px] border-[1.4px] border-line rounded-[9px] text-[13px] text-ink outline-none focus:border-navy-2 bg-white';
 const LABEL = 'block text-[11.5px] font-bold text-slate mb-[6px]';
 
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+      <line x1="1" y1="1" x2="23" y2="23"/>
+    </svg>
+  ) : (
+    <svg xmlns="http://www.w3.org/2000/svg" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+      <circle cx="12" cy="12" r="3"/>
+    </svg>
+  );
+}
+
 function detailOf(err: unknown, fallback: string): string {
   return (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail ?? fallback;
 }
@@ -17,6 +32,8 @@ export default function ForgotPassword() {
   const [code, setCode] = useState('');
   const [newPw, setNewPw] = useState('');
   const [confirmPw, setConfirmPw] = useState('');
+  const [showPw, setShowPw] = useState(false);
+  const [showCf, setShowCf] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
@@ -134,16 +151,30 @@ export default function ForgotPassword() {
             </div>
             <div className="mb-[13px]">
               <label className={LABEL}>New Password</label>
-              <input type="password" placeholder="Min. 8 chars, uppercase, number" value={newPw}
-                     onChange={(e) => { setNewPw(e.target.value); setFieldErrors((p) => ({ ...p, newPw: '' })); }}
-                     className={INPUT} />
+              <div className="relative">
+                <input type={showPw ? 'text' : 'password'} placeholder="Min. 8 chars, uppercase, number" value={newPw}
+                       onChange={(e) => { setNewPw(e.target.value); setFieldErrors((p) => ({ ...p, newPw: '' })); }}
+                       className={`${INPUT} pr-11`} />
+                <button type="button" onClick={() => setShowPw((v) => !v)} tabIndex={-1}
+                        aria-label={showPw ? 'Hide password' : 'Show password'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink">
+                  <EyeIcon open={showPw} />
+                </button>
+              </div>
               {fieldError('newPw')}
             </div>
             <div className="mb-[13px]">
               <label className={LABEL}>Confirm New Password</label>
-              <input type="password" placeholder="Repeat new password" value={confirmPw}
-                     onChange={(e) => { setConfirmPw(e.target.value); setFieldErrors((p) => ({ ...p, confirmPw: '' })); }}
-                     className={INPUT} />
+              <div className="relative">
+                <input type={showCf ? 'text' : 'password'} placeholder="Repeat new password" value={confirmPw}
+                       onChange={(e) => { setConfirmPw(e.target.value); setFieldErrors((p) => ({ ...p, confirmPw: '' })); }}
+                       className={`${INPUT} pr-11`} />
+                <button type="button" onClick={() => setShowCf((v) => !v)} tabIndex={-1}
+                        aria-label={showCf ? 'Hide password' : 'Show password'}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate hover:text-ink">
+                  <EyeIcon open={showCf} />
+                </button>
+              </div>
               {fieldError('confirmPw')}
             </div>
             <button type="submit" disabled={loading}
