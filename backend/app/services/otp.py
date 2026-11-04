@@ -54,6 +54,10 @@ def seconds_until_resend(db: Session, user_id: int, purpose: OtpPurpose) -> int:
     if latest is None or latest.created_at is None:
         return 0
     elapsed = (_now() - _as_aware(latest.created_at)).total_seconds()
+    if elapsed < 0:
+        # Codes issued before created_at was stamped in UTC carry the
+        # DB's IST clock and read as hours in the future; never block on them.
+        return 0
     remaining = settings.OTP_RESEND_COOLDOWN_SECONDS - elapsed
     return max(0, int(remaining))
 
@@ -72,6 +76,9 @@ def issue_code(db: Session, user: User, purpose: OtpPurpose) -> str:
             user_id=user.id,
             code_hash=_hash(code),
             purpose=purpose,
+            # Stamped here in UTC like expires_at: the DB default would use
+            # the session's IST clock, which the cooldown reads as UTC.
+            created_at=_now(),
             expires_at=_now() + timedelta(minutes=settings.OTP_TTL_MINUTES),
         )
     )

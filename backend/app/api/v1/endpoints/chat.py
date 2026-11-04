@@ -11,7 +11,6 @@ REST helpers:
 import json
 import logging
 from collections import defaultdict
-from datetime import datetime, timezone
 from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect, status
@@ -19,6 +18,7 @@ from sqlalchemy import func, case
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist
 from app.core.database import SessionLocal, get_db
 from app.core.deps import get_current_user, get_current_facility_admin
 from app.core.security import decode_token
@@ -344,7 +344,7 @@ async def websocket_chat(
                 is_read=False,
             )
             db.add(msg)
-            room.last_message_at = datetime.now(timezone.utc)
+            room.last_message_at = now_ist()
             db.commit()
             db.refresh(msg)
 

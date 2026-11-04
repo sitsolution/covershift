@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import extract, func
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.clock import now_ist
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_staff
@@ -53,7 +54,7 @@ def earnings_summary(
     db: Session = Depends(get_db), current_user: User = Depends(get_current_staff)
 ):
     """The hero card on My Earnings."""
-    now = datetime.now(timezone.utc)
+    now = now_ist()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     total = _sum(db, current_user.id, Payment.status == PaymentStatus.paid)
@@ -87,7 +88,7 @@ def earnings_trend(
 ):
     """The bar chart. Returns a point per month including empty ones, so the
     chart keeps a stable number of bars."""
-    now = datetime.now(timezone.utc)
+    now = now_ist()
 
     buckets: list[tuple[int, int]] = []
     year, month = now.year, now.month

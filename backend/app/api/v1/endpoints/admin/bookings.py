@@ -263,7 +263,7 @@ def export_bookings(
             ])
             yield buffer.getvalue()
 
-    filename = f"bookings-{datetime.now(timezone.utc):%Y%m%d}.csv"
+    filename = f"bookings-{now_ist():%Y%m%d}.csv"
     return StreamingResponse(
         rows(),
         media_type="text/csv",
@@ -470,7 +470,7 @@ def mark_payment_done(
         )
 
     payment.status = PaymentStatus.paid
-    payment.paid_at = datetime.now(timezone.utc)
+    payment.paid_at = now_ist()
 
     notify(
         admin.db,

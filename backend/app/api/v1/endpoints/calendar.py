@@ -4,6 +4,7 @@ from datetime import date, datetime, time, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.clock import now_ist
 from app.core.database import get_db
 from app.core.deps import get_current_staff
 from app.models.application import Application
@@ -85,7 +86,7 @@ def get_calendar(
         .filter(
             Application.staff_id == current_user.id,
             Application.status.in_([ApplicationStatus.confirmed, ApplicationStatus.pending]),
-            Shift.start_time >= datetime.now(timezone.utc),
+            Shift.start_time >= now_ist(),
         )
         .order_by(Shift.start_time.asc())
         .limit(10)

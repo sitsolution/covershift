@@ -1,12 +1,12 @@
 """Super Admin dashboard — GET /superadmin/dashboard."""
 
-from datetime import datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist
 from app.api.v1.endpoints.superadmin.deps import require_super_admin
 from app.core.deps import get_db
 from app.models.document import Document
@@ -74,7 +74,7 @@ def dashboard(
     )
 
     # Month-to-date counts
-    now = datetime.now(timezone.utc)
+    now = now_ist()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
     new_users_this_month = (
         db.query(func.count(User.id))

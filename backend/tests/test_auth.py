@@ -245,3 +245,17 @@ def test_resend_inside_the_cooldown_is_refused_and_keeps_the_first_code(client, 
     assert again.status_code == 429
     assert "Please wait" in again.json()["detail"]
     assert _reset(client, DOCTOR["email"], first).status_code == 200
+
+
+def test_cooldown_ignores_codes_stamped_on_the_ist_clock(client, db_session, registered_doctor):
+    """Live MySQL stamped created_at in IST, read back as UTC: 5½ hours ahead,
+    so the 60-second cooldown became "wait 18636 seconds"."""
+    from datetime import datetime, timedelta, timezone
+    from app.models.otp import OtpCode
+
+    _forgot(client, DOCTOR["email"])
+    latest = db_session.query(OtpCode).order_by(OtpCode.id.desc()).first()
+    latest.created_at = datetime.now(timezone.utc).replace(tzinfo=None) + timedelta(hours=5, minutes=30)
+    db_session.commit()
+
+    assert _forgot(client, DOCTOR["email"]).status_code == 200

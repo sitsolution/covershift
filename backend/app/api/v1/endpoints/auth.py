@@ -1,8 +1,9 @@
-from datetime import datetime, timezone
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist
 from app.core.config import settings
 from app.core.database import get_db
 from app.core.deps import get_current_user
@@ -91,7 +92,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         full_name=payload.full_name,
         hashed_password=hash_password(payload.password),
         role=payload.role,
-        accepted_terms_at=datetime.now(timezone.utc),
+        accepted_terms_at=now_ist(),
     )
     db.add(user)
     db.flush()   # assign user.id without ending the transaction
@@ -118,7 +119,7 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
             facility_id=facility.id,
             user_id=user.id,
             facility_role=FacilityRole.super_admin,
-            accepted_at=datetime.now(timezone.utc),
+            accepted_at=now_ist(),
         ))
 
     _seed_defaults(db, user)
@@ -147,7 +148,7 @@ def login(payload: LoginRequest, db: Session = Depends(get_db)):
     if not user.is_active:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
 
-    user.last_login_at = datetime.now(timezone.utc)
+    user.last_login_at = now_ist()
     db.commit()
 
     debug_otp: str | None = None
@@ -316,7 +317,7 @@ def accept_invitation(payload: ResetPasswordRequest, db: Session = Depends(get_d
     db.query(FacilityMember).filter(
         FacilityMember.user_id == user.id,
         FacilityMember.accepted_at.is_(None),
-    ).update({"accepted_at": datetime.now(timezone.utc)}, synchronize_session=False)
+    ).update({"accepted_at": now_ist()}, synchronize_session=False)
 
     db.commit()
     db.refresh(user)
@@ -346,7 +347,7 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
     if user:
         if not user.is_active:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account is disabled")
-        user.last_login_at = datetime.now(timezone.utc)
+        user.last_login_at = now_ist()
         db.commit()
         return TokenResponse(**_token_response(user))
 
@@ -383,7 +384,7 @@ def google_signup(payload: GoogleSignupRequest, db: Session = Depends(get_db)):
         full_name=full_name,
         hashed_password=hash_password(_secrets.token_urlsafe(32)),
         role=payload.role,
-        accepted_terms_at=datetime.now(timezone.utc),
+        accepted_terms_at=now_ist(),
         is_verified=True,
     )
     db.add(user)
@@ -409,7 +410,7 @@ def google_signup(payload: GoogleSignupRequest, db: Session = Depends(get_db)):
             facility_id=facility.id,
             user_id=user.id,
             facility_role=FacilityRole.super_admin,
-            accepted_at=datetime.now(timezone.utc),
+            accepted_at=now_ist(),
         ))
 
     _seed_defaults(db, user)

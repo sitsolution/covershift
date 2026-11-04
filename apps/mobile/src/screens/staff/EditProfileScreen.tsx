@@ -201,7 +201,10 @@ export default function EditProfileScreen({ navigation }: Props) {
       await userService.updateMe({
         fullName: name,
         phone,
-        dateOfBirth: dob ? dob.toISOString().split('T')[0] : undefined,
+        // Local date: toISOString() gives the UTC date, a day early in IST.
+        dateOfBirth: dob
+          ? `${dob.getFullYear()}-${String(dob.getMonth() + 1).padStart(2, '0')}-${String(dob.getDate()).padStart(2, '0')}`
+          : undefined,
         specialty,
         experience,
         preferredLocations: preferredLocations.split(',').map(s => s.trim()).filter(Boolean),

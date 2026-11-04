@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional
 
@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.clock import now_ist
 from app.core.admin import AdminContext, require_admin
 from app.core.config import settings
 from app.core.security import hash_password
@@ -621,7 +622,7 @@ def create_staff(
         hashed_password=hash_password(payload.password),
         role=payload.role,
         is_verified=False,
-        accepted_terms_at=datetime.now(timezone.utc),
+        accepted_terms_at=now_ist(),
     )
     db.add(user)
     db.flush()

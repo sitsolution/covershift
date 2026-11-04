@@ -1,10 +1,11 @@
-from datetime import date, datetime, timezone
+from datetime import date
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+from app.core.clock import now_ist, today_ist
 from app.core.admin import AdminContext, require_admin
 from app.models.billing import Invoice, InvoiceLineItem, PaymentMethod
 from app.models.enums import AdminPermission, InvoiceStatus
@@ -63,7 +64,7 @@ def list_invoices(
         else [i for i in invoices if i.effective_status.value == tab]
     )
 
-    today = date.today()
+    today = today_ist()
     outstanding = sum(
         float(i.total) for i in invoices
         if i.effective_status in (InvoiceStatus.unpaid, InvoiceStatus.overdue)
@@ -197,7 +198,7 @@ def pay_invoice(
         )
 
     invoice.status = InvoiceStatus.paid
-    invoice.paid_at = datetime.now(timezone.utc)
+    invoice.paid_at = now_ist()
     invoice.payment_reference = payload.reference or f"PAY-{invoice.number}"
     admin.db.commit()
     return get_invoice(invoice_id, admin)

@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
+from app.core.clock import today_ist
 from app.core.admin import AdminContext, get_admin, require_admin
 from app.models.application import Application
 from app.models.document import Document
@@ -33,7 +34,7 @@ from app.schemas.admin.dashboard import (
 )
 from app.services.labels import DOCUMENT_TYPE_LABELS
 
-from .common import as_aware
+from .common import IST, as_aware
 
 router = APIRouter()
 
@@ -110,7 +111,7 @@ def dashboard(
 ):
     """The admin Dashboard: four KPI cards, the volume chart, urgent shifts."""
     db = admin.db
-    now = datetime.now(timezone.utc)
+    now = datetime.now(IST)
     year = year or now.year
     month = month or now.month
 
@@ -227,7 +228,7 @@ def reports(
 ):
     """The Reports screen: fill rate, time to fill, spend, and compliance."""
     db = admin.db
-    now = datetime.now(timezone.utc)
+    now = datetime.now(IST)
     year = year or now.year
     month = month or now.month
 
@@ -326,7 +327,7 @@ def _expiring_documents(admin: AdminContext) -> List[ExpiringDocumentRow]:
     """Compliance panel: documents already expired or expiring soon, for staff
     connected to this admin's facilities."""
     db = admin.db
-    today = date.today()
+    today = today_ist()
     cutoff = today + timedelta(days=EXPIRY_WARNING_DAYS)
 
     connected_staff = admin.scope(

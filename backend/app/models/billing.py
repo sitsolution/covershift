@@ -4,6 +4,7 @@ from sqlalchemy import (
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
+from app.core.clock import today_ist
 from app.core.database import Base
 from app.models.enums import InvoiceStatus, enum_column
 
@@ -46,7 +47,7 @@ class Invoice(Base):
     @property
     def is_overdue(self) -> bool:
         from datetime import date
-        return self.status == InvoiceStatus.unpaid and self.due_on < date.today()
+        return self.status == InvoiceStatus.unpaid and self.due_on < today_ist()
 
     @property
     def effective_status(self) -> InvoiceStatus:

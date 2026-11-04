@@ -2,6 +2,9 @@
 
 Each test runs against a fresh in-memory SQLite database with the real schema,
 so tests are isolated and need no MySQL server.
+
+Set TEST_DATABASE_URL to a throwaway MySQL database to run the suite the way
+production stores time (session on IST); its tables are dropped after each test.
 """
 
 import os
@@ -19,7 +22,7 @@ os.environ.setdefault("UPLOAD_DIR", tempfile.mkdtemp(prefix="coverline-test-uplo
 
 import pytest
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
@@ -32,13 +35,29 @@ from app.core.database import Base, get_db
 from app.main import app
 
 
+def _test_engine():
+    url = os.environ.get("TEST_DATABASE_URL")
+    if not url:
+        return create_engine(
+            "sqlite://",
+            connect_args={"check_same_thread": False},
+            poolclass=StaticPool,   # one shared connection, so :memory: persists
+        )
+    engine = create_engine(url, poolclass=StaticPool)
+
+    @event.listens_for(engine, "connect")
+    def _use_ist(dbapi_connection, _record):
+        # Same session clock as app.core.database sets on the live server.
+        cursor = dbapi_connection.cursor()
+        cursor.execute("SET time_zone = '+05:30'")
+        cursor.close()
+
+    return engine
+
+
 @pytest.fixture
 def db_session():
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,   # one shared connection, so :memory: persists
-    )
+    engine = _test_engine()
     Base.metadata.create_all(bind=engine)
     TestingSession = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     session = TestingSession()

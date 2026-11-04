@@ -1,4 +1,3 @@
-from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -6,6 +5,7 @@ from fastapi.responses import FileResponse
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist, today_ist
 from app.core.admin import AdminContext, require_admin
 from app.models.application import Application
 from app.models.document import Document
@@ -44,7 +44,7 @@ def _connected_staff_ids(admin: AdminContext):
 
 
 def _row(document: Document, user: User) -> DocumentReviewRow:
-    days_left = (document.expiry_date - date.today()).days if document.expiry_date else None
+    days_left = (document.expiry_date - today_ist()).days if document.expiry_date else None
     return DocumentReviewRow(
         id=document.id,
         staff_id=user.id,
@@ -68,7 +68,7 @@ def _row(document: Document, user: User) -> DocumentReviewRow:
 
 
 def _refresh_expired(db: Session, documents: List[Document]) -> None:
-    today = date.today()
+    today = today_ist()
     changed = False
     for document in documents:
         if (
@@ -199,14 +199,14 @@ def verify_document(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This document is already verified"
         )
-    if document.expiry_date and document.expiry_date < date.today():
+    if document.expiry_date and document.expiry_date < today_ist():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="This document has expired and cannot be verified",
         )
 
     document.status = DocumentStatus.verified
-    document.verified_at = datetime.now(timezone.utc)
+    document.verified_at = now_ist()
     document.verified_by_id = admin.user.id
     document.rejection_reason = None
 

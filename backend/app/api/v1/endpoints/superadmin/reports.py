@@ -1,12 +1,13 @@
 """Super Admin reports — GET /superadmin/reports."""
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist, today_ist
 from app.api.v1.endpoints.superadmin.deps import require_super_admin
 from app.core.deps import get_db
 from app.models.application import Application
@@ -80,7 +81,7 @@ def reports(
     )
 
     # New users this calendar month
-    now = datetime.now(timezone.utc)
+    now = now_ist()
     month_start = datetime(now.year, now.month, 1, tzinfo=timezone.utc)
     new_users_this_month = (
         db.query(func.count(User.id))
@@ -90,7 +91,7 @@ def reports(
     )
 
     # Expiring documents: verified, expiry within next 30 days
-    today = date.today()
+    today = today_ist()
     cutoff = today + timedelta(days=30)
     expiring_documents = (
         db.query(func.count(Document.id))

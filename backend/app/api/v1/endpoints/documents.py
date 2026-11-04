@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, s
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
+from app.core.clock import today_ist
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.document import Document
@@ -32,7 +33,7 @@ EXPIRY_WARNING_DAYS = 30
 
 
 def _to_out(doc: Document) -> DocumentOut:
-    days_left = (doc.expiry_date - date.today()).days if doc.expiry_date else None
+    days_left = (doc.expiry_date - today_ist()).days if doc.expiry_date else None
     return DocumentOut(
         id=doc.id,
         doc_type=doc.doc_type,
@@ -77,7 +78,7 @@ def _refresh_expired(db: Session, docs: List[Document]) -> None:
     A scheduled job would be better, but this keeps the badge honest without
     one, and only writes when something actually changed.
     """
-    today = date.today()
+    today = today_ist()
     changed = False
     for doc in docs:
         if (
@@ -178,7 +179,7 @@ def upload_document(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Expiry date must be after the issue date",
         )
-    if expiry_date and expiry_date < date.today():
+    if expiry_date and expiry_date < today_ist():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="This document has already expired"
         )

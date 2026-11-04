@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist
 from app.core.database import get_db
 from app.core.deps import get_current_staff, get_current_user
 from app.models.application import Application
@@ -172,7 +172,7 @@ def register_device_token(
 ):
     """Stores the Expo push token so push notifications have a target."""
     existing = db.query(DeviceToken).filter(DeviceToken.token == payload.token).first()
-    now = datetime.now(timezone.utc)
+    now = now_ist()
 
     if existing is not None:
         # A device can change hands between accounts; re-point the token.
@@ -276,10 +276,9 @@ def get_dashboard(
     current_user: User = Depends(get_current_staff),
 ):
     """The whole Home screen in one call: stats, urgent shifts, recommendations."""
-    from app.api.v1.endpoints.shifts import recommended_shifts, _now_ist
+    from app.api.v1.endpoints.shifts import recommended_shifts
 
-    now_ist = _now_ist()
-    now = datetime.now(timezone.utc)
+    now = now_ist()
     month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
 
     available = (
@@ -288,7 +287,7 @@ def get_dashboard(
             Shift.role == current_user.role,
             Shift.status == ShiftStatus.open,
             Shift.is_visible.is_(True),
-            Shift.end_time > now_ist,
+            Shift.end_time > now,
             Shift.slots_filled < Shift.slots,
         )
         .scalar()
@@ -333,7 +332,7 @@ def get_dashboard(
             Shift.status == ShiftStatus.open,
             Shift.is_visible.is_(True),
             Shift.is_urgent.is_(True),
-            Shift.end_time > now_ist,
+            Shift.end_time > now,
             Shift.slots_filled < Shift.slots,
         )
         .order_by(Shift.start_time.asc())

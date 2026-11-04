@@ -1,10 +1,10 @@
-from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
+from app.core.clock import now_ist
 from app.core.database import get_db
 from app.core.deps import get_current_user
 from app.models.enums import NotificationCategory
@@ -107,7 +107,7 @@ def mark_read(
 
     if not notification.is_read:
         notification.is_read = True
-        notification.read_at = datetime.now(timezone.utc)
+        notification.read_at = now_ist()
         db.commit()
         db.refresh(notification)
     return NotificationOut.model_validate(notification)
@@ -120,7 +120,7 @@ def mark_all_read(db: Session = Depends(get_db), current_user: User = Depends(ge
         db.query(Notification)
         .filter(Notification.user_id == current_user.id, Notification.is_read.is_(False))
         .update(
-            {"is_read": True, "read_at": datetime.now(timezone.utc)},
+            {"is_read": True, "read_at": now_ist()},
             synchronize_session=False,
         )
     )

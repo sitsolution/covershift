@@ -27,8 +27,11 @@ function formatDate(date: Date): string {
   return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
 }
 
+/** Local YYYY-MM-DD. toISOString() would give the UTC date — the picker
+ *  returns local midnight, which is the previous day in UTC for IST. */
 function toISODate(date: Date): string {
-  return date.toISOString().split('T')[0];
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 }
 
 // ─── Date Field ───────────────────────────────────────────────────────────────

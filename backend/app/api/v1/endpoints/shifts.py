@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import case, func, or_
 from sqlalchemy.orm import Session, joinedload
 
+from app.core.clock import now_ist
 from app.core.database import get_db
 from app.core.deps import get_current_staff, get_current_user
 from app.models.application import Application
@@ -338,7 +339,7 @@ def apply_to_shift(
         # already reserved for this (shift, staff) pair.
         existing.status = ApplicationStatus.pending
         existing.note = payload.note
-        existing.applied_at = datetime.now(timezone.utc)
+        existing.applied_at = now_ist()
         existing.cancelled_at = None
         existing.cancellation_reason = None
         application = existing
