@@ -139,7 +139,7 @@ function Hero() {
             <h1 className="font-display font-black text-[40px] sm:text-[52px] md:text-[58px] leading-[1.07] text-white mb-5 tracking-tight">
               Fill Every Shift,<br />
               <span style={{ background: 'linear-gradient(90deg, #5FB4E0, #EAF2F8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                Every Time.
+                Every Time
               </span>
             </h1>
             {/* Subheadline */}

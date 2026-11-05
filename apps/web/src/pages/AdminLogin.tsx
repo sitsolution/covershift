@@ -47,7 +47,7 @@ export default function AdminLogin() {
 
         {/* Heading */}
         <h1 className="font-display font-extrabold text-[19px] text-ink mb-[4px]">Welcome back</h1>
-        <p className="text-[11.5px] text-slate mb-5">Login to your facility dashboard</p>
+        <p className="text-[11.5px] text-slate mb-5">Login to your facility dashboard.</p>
 
         {/* Error */}
         {error && (
