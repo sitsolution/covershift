@@ -1,14 +1,15 @@
 import logging
-from pathlib import Path
+import mimetypes
+import re
 
-from fastapi import FastAPI, Request, status
+from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
-from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse, Response
 
 from app.api.v1.router import api_router
 from app.core.config import settings
+from app.services import storage
 
 logging.basicConfig(level=logging.INFO if settings.DEBUG else logging.WARNING)
 
@@ -55,10 +56,21 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
 
 app.include_router(api_router, prefix="/api/v1")
 
-# Serve uploaded files (avatars, documents) at /uploads/<user_id>/<filename>
-_uploads_dir = Path(settings.UPLOAD_DIR).resolve()
-_uploads_dir.mkdir(parents=True, exist_ok=True)
-app.mount("/uploads", StaticFiles(directory=str(_uploads_dir)), name="uploads")
+_AVATAR_KEY = re.compile(r"^\d+/[0-9a-f]{32}\.(jpg|png|webp|heic|heif)$")
+
+
+@app.get("/uploads/avatars/{key:path}", include_in_schema=False)
+def serve_avatar(key: str):
+    """Profile photos are public (shown in lists and chat); documents are not,
+    and are only read through their authenticated endpoints."""
+    if not _AVATAR_KEY.match(key):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    content = storage.read(f"{storage.AVATAR_FOLDER}/{key}")
+    if content is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not found")
+    media_type = mimetypes.guess_type(key)[0] or "application/octet-stream"
+    # Keys are random and never reused, so the bytes behind one never change.
+    return Response(content, media_type=media_type, headers={"Cache-Control": "public, max-age=31536000, immutable"})
 
 
 @app.get("/health", tags=["health"])

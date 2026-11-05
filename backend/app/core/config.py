@@ -29,6 +29,11 @@ class Settings(BaseSettings):
 
     # ── Uploads ───────────────────────────────────────────────────────────────
     UPLOAD_DIR: str = "uploads"
+    # "local" keeps files under UPLOAD_DIR; "s3" puts them in S3_BUCKET using
+    # the server's IAM role (no keys in .env).
+    STORAGE_BACKEND: str = "local"
+    S3_BUCKET: str = ""
+    AWS_REGION: str = "ap-south-1"
     MAX_UPLOAD_MB: int = 10
     ALLOWED_UPLOAD_TYPES: str = "application/pdf,image/jpeg,image/png"   # see CORS_ORIGINS
 

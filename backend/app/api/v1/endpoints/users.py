@@ -136,9 +136,9 @@ def upload_avatar(
     current_user: User = Depends(get_current_user),
 ):
     """'Change Photo' on Edit Profile."""
-    from app.services.storage import _AVATAR_TYPES
-    relative_path, _ = save_upload(file, current_user.id, allowed_types=_AVATAR_TYPES)
-    current_user.avatar_url = f"/uploads/{relative_path}"
+    from app.services.storage import _AVATAR_TYPES, AVATAR_FOLDER
+    key, _ = save_upload(file, current_user.id, allowed_types=_AVATAR_TYPES, folder=AVATAR_FOLDER)
+    current_user.avatar_url = f"/uploads/{key}"
     db.commit()
     db.refresh(current_user)
     return _profile_out(db, current_user)

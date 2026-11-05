@@ -1,7 +1,7 @@
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
@@ -175,15 +175,15 @@ def preview_document(
     """The Document Preview panel. Served inline so a PDF renders in-page."""
     document, _ = _get_document(admin, document_id)
 
-    path = storage.resolve(document.file_path)
-    if not path.exists():
+    content = storage.read(document.file_path)
+    if content is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="File is missing from storage"
         )
-    return FileResponse(
-        path,
+    return Response(
+        content,
         media_type=document.content_type,
-        headers={"Content-Disposition": f'inline; filename="{document.original_filename}"'},
+        headers={"Content-Disposition": storage.content_disposition("inline", document.original_filename)},
     )
 
 

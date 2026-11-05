@@ -2,7 +2,7 @@ from datetime import date, datetime, timezone
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
-from fastapi.responses import FileResponse
+from fastapi.responses import Response
 from sqlalchemy.orm import Session
 
 from app.core.clock import today_ist
@@ -230,11 +230,15 @@ def download_document(
     if doc is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Document not found")
 
-    path = storage.resolve(doc.file_path)
-    if not path.exists():
+    content = storage.read(doc.file_path)
+    if content is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="File is missing from storage")
 
-    return FileResponse(path, media_type=doc.content_type, filename=doc.original_filename)
+    return Response(
+        content,
+        media_type=doc.content_type,
+        headers={"Content-Disposition": storage.content_disposition("attachment", doc.original_filename)},
+    )
 
 
 @router.delete("/{document_id}", response_model=MessageResponse)
