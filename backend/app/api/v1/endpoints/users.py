@@ -1,3 +1,4 @@
+import logging
 from typing import Optional
 
 from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
@@ -30,6 +31,7 @@ from app.services import serializers
 from app.services.labels import credential_label
 from app.services.storage import save_upload
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -135,12 +137,25 @@ def upload_avatar(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """'Change Photo' on Edit Profile."""
+    """'Change Photo' on Edit Profile. The previous photo is removed once the
+    new one is saved, so storage holds one photo per user."""
+    from app.services import storage
     from app.services.storage import _AVATAR_TYPES, AVATAR_FOLDER
+    previous = current_user.avatar_url
     key, _ = save_upload(file, current_user.id, allowed_types=_AVATAR_TYPES, folder=AVATAR_FOLDER)
     current_user.avatar_url = f"/uploads/{key}"
     db.commit()
     db.refresh(current_user)
+
+    # Only photos this app stored; an avatar_url may also be an external
+    # link (e.g. a Google profile picture), which is not ours to delete.
+    old_prefix = f"/uploads/{AVATAR_FOLDER}/{current_user.id}/"
+    if previous and previous.startswith(old_prefix):
+        try:
+            storage.delete(previous.removeprefix("/uploads/"))
+        except Exception:
+            # The new photo is already saved; a leftover file is harmless.
+            logger.warning("Could not delete old avatar %s", previous, exc_info=True)
     return _profile_out(db, current_user)
 
 

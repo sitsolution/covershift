@@ -79,3 +79,37 @@ def test_s3_backend_stores_serves_and_deletes(client, auth_headers, monkeypatch)
     assert client.delete(f"/api/v1/documents/{document_id}", headers=auth_headers).status_code == 200
     assert (bucket, key) not in fake.objects
     assert client.get(f"/api/v1/documents/{document_id}/file", headers=auth_headers).status_code == 404
+
+
+def test_changing_the_photo_removes_the_old_one(client, auth_headers):
+    first = client.post("/api/v1/users/me/avatar", headers=auth_headers, files={"file": PNG}).json()["user"]["avatarUrl"]
+    second = client.post("/api/v1/users/me/avatar", headers=auth_headers,
+                         files={"file": ("new.png", b"\x89PNG\r\n\x1a\nnewer", "image/png")}).json()["user"]["avatarUrl"]
+
+    assert first != second
+    assert client.get(first).status_code == 404
+    assert client.get(second).status_code == 200
+
+
+def test_changing_the_photo_removes_the_old_one_from_s3(client, auth_headers, monkeypatch):
+    fake = _FakeS3()
+    monkeypatch.setattr(settings, "STORAGE_BACKEND", "s3")
+    monkeypatch.setattr(settings, "S3_BUCKET", "test-bucket")
+    monkeypatch.setattr(storage, "_s3", lambda: fake)
+
+    client.post("/api/v1/users/me/avatar", headers=auth_headers, files={"file": PNG})
+    client.post("/api/v1/users/me/avatar", headers=auth_headers, files={"file": PNG})
+
+    assert len(fake.objects) == 1, "only the current photo should remain"
+
+
+def test_an_external_photo_link_is_left_alone(client, auth_headers, db_session):
+    from app.models.user import User
+    from tests.conftest import DOCTOR
+
+    user = db_session.query(User).filter(User.email == DOCTOR["email"]).one()
+    user.avatar_url = "https://lh3.googleusercontent.com/a/photo"
+    db_session.commit()
+
+    response = client.post("/api/v1/users/me/avatar", headers=auth_headers, files={"file": PNG})
+    assert response.status_code == 200
