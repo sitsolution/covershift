@@ -2,6 +2,7 @@
   "expo": {
     "name": "Covershift",
     "slug": "covershift",
+    "owner": "covershift01s-team",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -39,7 +40,7 @@
     "scheme": "covershift",
     "extra": {
       "eas": {
-        "projectId": "142eff2c-6fe2-4643-9e8d-454847b824eb"
+        "projectId": "7c1ce14e-fe45-4507-b2ab-444d3d800510"
       }
     },
     "plugins": [
