@@ -19,7 +19,12 @@ logger = logging.getLogger(__name__)
 # ── Mobile — Expo Push ────────────────────────────────────────────────────────
 
 def _send_expo_push(tokens: list[str], title: str, body: Optional[str], data: dict) -> None:
-    """Send push to a list of Expo push tokens."""
+    """Send push to a list of Expo push tokens.
+
+    Each token is sent on its own: Expo rejects a whole batch when its tokens
+    belong to different Expo projects (e.g. an old install of the app), and one
+    stale token must not stop the user's current device from being notified.
+    """
     try:
         from exponent_server_sdk import (
             DeviceNotRegisteredError,
@@ -31,16 +36,10 @@ def _send_expo_push(tokens: list[str], title: str, body: Optional[str], data: di
         logger.warning("exponent_server_sdk not installed — mobile push skipped")
         return
 
-    from app.core.config import settings
-
-    client_kwargs: dict = {}
-    if settings.EXPO_ACCESS_TOKEN:
-        client_kwargs["session"] = None  # PushClient accepts extra_headers via session
-
     client = PushClient()
 
-    messages = [
-        PushMessage(
+    for token in tokens:
+        message = PushMessage(
             to=token,
             title=title,
             body=body or "",
@@ -48,21 +47,15 @@ def _send_expo_push(tokens: list[str], title: str, body: Optional[str], data: di
             sound="default",
             badge=1,
         )
-        for token in tokens
-    ]
-
-    try:
-        responses = client.publish_multiple(messages)
-        for token, response in zip(tokens, responses):
-            try:
-                response.validate_response()
-            except DeviceNotRegisteredError:
-                logger.info("Expo token no longer valid, will deactivate: %s…", token[:20])
-                _deactivate_expo_token(token)
-    except PushServerError as exc:
-        logger.error("Expo push server error: %s", exc)
-    except Exception as exc:
-        logger.error("Expo push unexpected error: %s", exc)
+        try:
+            client.publish(message).validate_response()
+        except DeviceNotRegisteredError:
+            logger.info("Expo token no longer valid, will deactivate: %s…", token[:20])
+            _deactivate_expo_token(token)
+        except PushServerError as exc:
+            logger.error("Expo push server error for %s…: %s", token[:20], exc)
+        except Exception as exc:
+            logger.error("Expo push unexpected error for %s…: %s", token[:20], exc)
 
 
 def _deactivate_expo_token(token: str) -> None:

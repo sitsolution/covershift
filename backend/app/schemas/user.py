@@ -83,7 +83,9 @@ class DeviceTokenRegister(CamelModel):
 class WebPushSubscriptionRegister(CamelModel):
     """Payload sent by the browser after calling pushManager.subscribe()."""
     endpoint: str
-    p256dh_key: str   # base64url DH public key
+    # Explicit alias: the camelCase generator turns p256dh_key into
+    # "p256DhKey" (capital D after the digits), but browsers send "p256dhKey".
+    p256dh_key: str = Field(alias="p256dhKey")   # base64url DH public key
     auth_key: str     # base64url auth secret
 
 
