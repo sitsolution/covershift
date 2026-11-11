@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Text, View, StyleSheet } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigatorScreenParams } from '@react-navigation/native';
@@ -8,6 +8,8 @@ import ShiftsStackNavigator, { ShiftsStackParamList } from './ShiftsStackNavigat
 import CalendarStackNavigator, { CalendarStackParamList } from './CalendarStackNavigator';
 import DocsStackNavigator, { DocsStackParamList } from './DocsStackNavigator';
 import ProfileStackNavigator, { ProfileStackParamList } from './ProfileStackNavigator';
+import { openFromNotification } from './navigationRef';
+import { addNotificationResponseListener } from '../services/pushNotificationService';
 
 export type StaffTabParamList = {
   Home: NavigatorScreenParams<HomeStackParamList>;
@@ -40,6 +42,8 @@ const SCREEN_MAP = {
 
 export default function StaffNavigator() {
   const tabBarStyle = useTabBarStyle();
+  // Tapping a push notification opens the screen it is about.
+  useEffect(() => addNotificationResponseListener(openFromNotification), []);
   return (
     <Tab.Navigator
       screenOptions={{

@@ -72,16 +72,28 @@ export async function unregisterPushNotifications(): Promise<void> {
   }
 }
 
+// Taps already acted on, so the one that cold-started the app is not
+// replayed every time the listener is re-attached (e.g. after re-login).
+const handledTaps = new Set<string>();
+
 /**
- * Listen for notification taps while the app is open.
- * Returns a cleanup function — call it in useEffect cleanup.
+ * Listen for notification taps — while the app is open or in the background,
+ * and the tap that launched a closed app. Returns a cleanup function.
  */
 export function addNotificationResponseListener(
   onTap: (entityType?: string, entityId?: number) => void,
 ): () => void {
-  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+  const handle = (response: Notifications.NotificationResponse) => {
+    const id = response.notification.request.identifier;
+    if (handledTaps.has(id)) return;
+    handledTaps.add(id);
     const data = response.notification.request.content.data as Record<string, unknown>;
     onTap(data?.entity_type as string | undefined, data?.entity_id as number | undefined);
+  };
+
+  Notifications.getLastNotificationResponseAsync().then((response) => {
+    if (response) handle(response);
   });
+  const sub = Notifications.addNotificationResponseReceivedListener(handle);
   return () => sub.remove();
 }

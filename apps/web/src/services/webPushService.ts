@@ -9,14 +9,23 @@
  *  4. The backend uses pywebpush + VAPID to send pushes whenever notify() fires.
  *  5. The service worker (public/sw.js) displays the notification in the background.
  *
- * TODO: Set VAPID_PUBLIC_KEY once the client provides it.
- * Generate VAPID keys:  pip install pywebpush && python -c "from py_vapid import Vapid; v=Vapid(); v.generate_keys(); print('PRIVATE:', v.private_key_str); print('PUBLIC:', v.public_key_str)"
+ * The VAPID public key comes from the backend (/users/me/vapid-public-key), so
+ * rotating the key pair in the backend .env needs no frontend change: a browser
+ * subscribed with an old key is re-subscribed with the current one.
  */
 
 import api from './api';
 
-// TODO: replace with the real VAPID public key from your backend .env
-const VAPID_PUBLIC_KEY = 'BGC7dWm6U5Vp2xywQFmJMQ2MARp3sQ4tj3Cxd_zQpqfwmPze9T1WWV4AZEI1Uot7A0sllfcxY-OIPXIwhD4st3M';
+async function fetchVapidPublicKey(): Promise<string | null> {
+  const { data } = await api.get<{ vapidPublicKey: string }>('/users/me/vapid-public-key');
+  return data.vapidPublicKey || null;
+}
+
+function sameKey(a: ArrayBuffer | null | undefined, b: Uint8Array): boolean {
+  if (!a || a.byteLength !== b.length) return false;
+  const bytes = new Uint8Array(a);
+  return bytes.every((value, i) => value === b[i]);
+}
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -43,19 +52,28 @@ async function sendSubscriptionToBackend(sub: PushSubscription): Promise<void> {
 export async function subscribeWebPush(): Promise<void> {
   if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
   try {
+    const publicKey = await fetchVapidPublicKey();
+    if (!publicKey) return;   // web push not configured on the server
+    const serverKey = urlBase64ToUint8Array(publicKey);
+
     const registration = await navigator.serviceWorker.register('/sw.js');
     await navigator.serviceWorker.ready;
 
-    // If already subscribed just re-sync the endpoint with the backend
+    // Already subscribed with the current key: just re-sync with the backend.
+    // Subscribed with an old key: pushes signed by the new key would be
+    // rejected, so drop it and subscribe again.
     const existing = await registration.pushManager.getSubscription();
     if (existing) {
-      await sendSubscriptionToBackend(existing);
-      return;
+      if (sameKey(existing.options.applicationServerKey, serverKey)) {
+        await sendSubscriptionToBackend(existing);
+        return;
+      }
+      await existing.unsubscribe();
     }
 
     const subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY) as BufferSource,
+      applicationServerKey: serverKey as BufferSource,
     });
 
     await sendSubscriptionToBackend(subscription);

@@ -1,5 +1,5 @@
 /**
- * Coverline Admin — Web Push Service Worker
+ * CoverShift Admin — Web Push Service Worker
  *
  * Handles incoming push events (background) and notification click navigation.
  * Served from /sw.js (Vite public/ directory).
@@ -12,10 +12,10 @@ self.addEventListener('push', function (event) {
   try {
     payload = event.data.json();
   } catch {
-    payload = { title: 'Coverline', body: event.data.text(), data: {} };
+    payload = { title: 'CoverShift', body: event.data.text(), data: {} };
   }
 
-  const title = payload.title || 'Coverline';
+  const title = payload.title || 'CoverShift';
   const options = {
     body: payload.body || '',
     icon: '/apple-touch-icon.png',
@@ -24,7 +24,7 @@ self.addEventListener('push', function (event) {
     requireInteraction: false,
     tag: payload.data?.entity_type
       ? `${payload.data.entity_type}-${payload.data.entity_id}`
-      : 'coverline',
+      : 'covershift',
   };
 
   event.waitUntil(self.registration.showNotification(title, options));
