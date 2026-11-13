@@ -54,9 +54,12 @@ curl -s -H 'Host: www.covershift.in' http://<VPS_IP>/ | grep -o '<title>.*</titl
    | A | www | `<VPS_IP>` |
 
    The root `covershift.in` keeps its GoDaddy forwarding to www (no change).
-3. When `dig +short api.covershift.in @8.8.8.8` (and app, www) show the VPS IP:
+3. The API already has HTTPS on the VPS (its Let's Encrypt certificate and
+   renewal config were copied from the AWS server before the switch). When
+   `dig +short app.covershift.in @8.8.8.8` (and www) show the VPS IP:
    ```
-   VPS 'sudo certbot --nginx -d api.covershift.in -d app.covershift.in -d www.covershift.in --redirect --agree-tos -m <email> -n'
+   VPS 'sudo certbot --nginx -d app.covershift.in -d www.covershift.in --redirect -n'
+   VPS 'sudo certbot renew --dry-run'
    ```
 4. Test: admin login, mobile app login, a document download, an avatar.
 
