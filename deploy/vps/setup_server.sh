@@ -11,7 +11,7 @@
 #   - clones the repo and installs the backend
 # Safe to re-run.
 set -euo pipefail
-export DEBIAN_FRONTEND=noninteractive
+export DEBIAN_FRONTEND=noninteractive NEEDRESTART_MODE=a
 REPO=https://github.com/sitsolution/covershift.git
 APP_USER=ubuntu
 HOME_DIR=/home/$APP_USER
@@ -30,7 +30,8 @@ if ! command -v node >/dev/null || [ "$(node -v | cut -c2- | cut -d. -f1)" -lt 2
 fi
 
 echo "== swap (2 GB)"
-if ! swapon --show | grep -q /swapfile; then
+if [ "$(stat -c %s /swapfile 2>/dev/null || echo 0)" -lt 2000000000 ]; then
+  swapoff /swapfile 2>/dev/null || true; rm -f /swapfile
   fallocate -l 2G /swapfile && chmod 600 /swapfile && mkswap /swapfile && swapon /swapfile
   grep -q /swapfile /etc/fstab || echo "/swapfile none swap sw 0 0" >> /etc/fstab
 fi
@@ -42,16 +43,21 @@ fi
 usermod -aG sudo $APP_USER
 echo "$APP_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/90-$APP_USER && chmod 440 /etc/sudoers.d/90-$APP_USER
 install -d -m 700 -o $APP_USER -g $APP_USER $HOME_DIR/.ssh
-cp /root/.ssh/authorized_keys $HOME_DIR/.ssh/authorized_keys
+# our keys only: the hosting company's support key stays on root alone
+grep -v "milesweb" /root/.ssh/authorized_keys > $HOME_DIR/.ssh/authorized_keys
 chown $APP_USER:$APP_USER $HOME_DIR/.ssh/authorized_keys && chmod 600 $HOME_DIR/.ssh/authorized_keys
 
 echo "== ssh: keys only"
-cat > /etc/ssh/sshd_config.d/90-covershift.conf <<'EOF'
+# "01-" so it is read before the image's own files (sshd keeps the first value it sees)
+rm -f /etc/ssh/sshd_config.d/90-covershift.conf
+cat > /etc/ssh/sshd_config.d/01-covershift.conf <<'EOF'
 PasswordAuthentication no
 KbdInteractiveAuthentication no
 PermitRootLogin prohibit-password
 EOF
-sshd -t && systemctl reload ssh
+mkdir -p /run/sshd
+sshd -t
+systemctl reload ssh 2>/dev/null || systemctl restart ssh
 
 echo "== firewall"
 ufw allow OpenSSH >/dev/null
