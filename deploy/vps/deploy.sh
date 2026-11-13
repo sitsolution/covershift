@@ -7,7 +7,7 @@
 # Stops at the first failure. A failed web build leaves the live site as it was.
 set -euo pipefail
 WHAT=${1:-all}
-API_URL=https://api.covershift.in
+API_URL=https://api.covershift.in/api/v1
 cd ~/covershift
 
 before=$(git rev-parse --short HEAD)
@@ -17,10 +17,12 @@ after=$(git rev-parse --short HEAD)
 echo "code: $before -> $after  ($(git log -1 --format=%s))"
 
 if [ "$WHAT" = all ] || [ "$WHAT" = web ]; then
+  # One install for both sites: `npm ci` wipes node_modules, so installing per
+  # site would leave only the last site's packages.
+  npm ci -s -w @covershift/web -w @covershift/landing >/dev/null
   for site in web:app landing:landing; do
     pkg=${site%%:*}; dir=${site##*:}
     echo "== building $pkg"
-    npm ci -s -w @covershift/$pkg >/dev/null
     (cd apps/$pkg && VITE_API_URL=$API_URL npm run -s build >/dev/null)
     rsync -a --delete apps/$pkg/dist/ /var/www/$dir/
     echo "$pkg deployed -> /var/www/$dir"
