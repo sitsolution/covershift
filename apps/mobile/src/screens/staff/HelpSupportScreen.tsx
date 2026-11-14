@@ -127,7 +127,7 @@ export default function HelpSupportScreen({ navigation }: Props) {
           <TouchableOpacity
             style={styles.btnOutline}
             activeOpacity={0.85}
-            onPress={() => Linking.openURL('mailto:support@covershift.in')}
+            onPress={() => Linking.openURL('mailto:covershiftswap@gmail.com')}
           >
             <Text style={styles.btnOutlineText}>📧  Email Support</Text>
           </TouchableOpacity>

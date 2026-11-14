@@ -74,7 +74,7 @@ const PRIVACY_SECTIONS = [
   },
   {
     heading: '7. Your Rights',
-    body: 'You have the right to access, correct, or delete your personal data. To exercise these rights, contact us at privacy@covershift.app. We will respond within 30 days.',
+    body: 'You have the right to access, correct, or delete your personal data. To exercise these rights, contact us at covershiftswap@gmail.com. We will respond within 30 days.',
   },
   {
     heading: '8. Security',

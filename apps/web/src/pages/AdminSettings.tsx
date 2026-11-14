@@ -7,7 +7,7 @@ import Modal from '../components/ui/Modal';
 import adminSettingsService, { FacilityProfileOut, AdminUserRow } from '../services/adminSettingsService';
 import { useAuth } from '../store/auth';
 
-const SUPPORT_EMAIL = 'info@covershift.app';
+const SUPPORT_EMAIL = 'covershiftswap@gmail.com';
 
 const NOTIFICATION_ITEMS: { key: 'pushNotifications' | 'smsAlerts' | 'emailAlerts'; label: string; desc: string }[] = [
   { key: 'pushNotifications', label: 'Push Notifications', desc: 'Browser and in-app alerts for new applications, bookings, and updates' },

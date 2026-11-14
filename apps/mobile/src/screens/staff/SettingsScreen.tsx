@@ -157,7 +157,7 @@ export default function SettingsScreen({ navigation }: Props) {
           <NavRow
             icon="🐞"
             title="Report a Bug"
-            onPress={() => Linking.openURL('mailto:support@covershift.in?subject=Bug%20Report&body=Describe%20the%20issue%20here…')}
+            onPress={() => Linking.openURL('mailto:covershiftswap@gmail.com?subject=Bug%20Report&body=Describe%20the%20issue%20here…')}
             isLast
           />
         </View>

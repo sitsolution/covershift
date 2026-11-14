@@ -7,7 +7,7 @@ const SECTIONS = [
       { label: 'Platform Name',    value: 'Covershift'         },
       { label: 'Environment',      value: 'Production'        },
       { label: 'Version',          value: 'v2.0 (Sep 2026)'   },
-      { label: 'Support Email',    value: 'support@covershift.health' },
+      { label: 'Support Email',    value: 'covershiftswap@gmail.com' },
     ],
   },
   {

@@ -2,7 +2,7 @@
 // Google Play links to /privacy-policy and /delete-account, so keep those
 // paths stable. Paragraphs are "Heading\nBody" or plain text.
 
-export const CONTACT_EMAIL = 'info@covershift.com';
+export const CONTACT_EMAIL = 'covershiftswap@gmail.com';
 
 export type LegalPage = { path: string; title: string; body: string[] };
 
