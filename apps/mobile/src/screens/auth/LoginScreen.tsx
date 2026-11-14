@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,8 +6,12 @@ import {
   TouchableOpacity,
   ScrollView,
 } from 'react-native';
-import * as WebBrowser from 'expo-web-browser';
-import * as Google from 'expo-auth-session/providers/google';
+import {
+  GoogleSignin,
+  isErrorWithCode,
+  isSuccessResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
 import Screen from '../../components/ui/Screen';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { AuthStackParamList } from '../../navigation/AuthNavigator';
@@ -17,12 +21,11 @@ import authService from '../../services/authService';
 import { useAuth } from '../../store/auth';
 import Toast, { ToastType } from '../../components/ui/Toast';
 
-WebBrowser.maybeCompleteAuthSession();
-
-// Replace these with real IDs from Google Cloud Console after OAuth setup
-const GOOGLE_WEB_CLIENT_ID = '400287386908-1i2kbrq8b0p4ud1fpufjb5n6bm4jpohe.apps.googleusercontent.com';
-const GOOGLE_ANDROID_CLIENT_ID = '400287386908-he98did3gtaoaj54i5dn0sjrtbth2qvk.apps.googleusercontent.com';
-const GOOGLE_IOS_CLIENT_ID = '';
+// The OAuth *web* client ID from the client's Google Cloud project: Google
+// issues the ID token to it, and the API only accepts tokens for it. Empty
+// hides the Google button.
+const GOOGLE_WEB_CLIENT_ID = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? '';
+if (GOOGLE_WEB_CLIENT_ID) GoogleSignin.configure({ webClientId: GOOGLE_WEB_CLIENT_ID });
 
 type Props = { navigation: NativeStackNavigationProp<AuthStackParamList, 'Login'> };
 
@@ -37,30 +40,31 @@ export default function LoginScreen({ navigation }: Props) {
   const showToast = (message: string, type: ToastType = 'error') =>
     setToast({ visible: true, message, type });
 
-  const [, googleResponse, googlePromptAsync] = Google.useAuthRequest({
-    webClientId: GOOGLE_WEB_CLIENT_ID,
-    androidClientId: GOOGLE_ANDROID_CLIENT_ID,
-    iosClientId: GOOGLE_IOS_CLIENT_ID,
-  });
-
-  useEffect(() => {
-    if (googleResponse?.type === 'success') {
-      const accessToken = googleResponse.authentication?.accessToken;
-      if (accessToken) handleGoogleToken(accessToken);
-    } else if (googleResponse?.type === 'error') {
+  const handleGoogleSignIn = async () => {
+    try {
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      // Start from a clean state so the account picker always shows.
+      await GoogleSignin.signOut().catch(() => {});
+      const response = await GoogleSignin.signIn();
+      if (!isSuccessResponse(response)) return;   // user closed the picker
+      const idToken = response.data.idToken;
+      if (!idToken) throw new Error('No ID token');
+      await handleGoogleToken(idToken);
+    } catch (err) {
+      if (isErrorWithCode(err) && err.code === statusCodes.IN_PROGRESS) return;
       showToast('Google sign-in failed. Please try again.');
     }
-  }, [googleResponse]);
+  };
 
-  const handleGoogleToken = async (accessToken: string) => {
+  const handleGoogleToken = async (idToken: string) => {
     setGoogleLoading(true);
     try {
-      const result = await authService.googleAuth(accessToken);
+      const result = await authService.googleAuth(idToken);
       if ('needsRegistration' in result && result.needsRegistration) {
         navigation.navigate('GoogleSignup', {
           googleEmail: result.googleEmail,
           googleName: result.googleName,
-          accessToken,
+          idToken,
         });
       } else {
         const data = result as any;
@@ -148,18 +152,15 @@ export default function LoginScreen({ navigation }: Props) {
           <View style={styles.dividerLine} />
         </View>
 
-        <Button
-          title="Continue with Google"
-          onPress={() => googlePromptAsync()}
-          loading={googleLoading}
-          variant="outline"
-          style={styles.googleBtn}
-        />
-        <Button
-          title="Continue with Apple"
-          onPress={() => {}}
-          variant="outline"
-        />
+        {GOOGLE_WEB_CLIENT_ID ? (
+          <Button
+            title="Continue with Google"
+            onPress={handleGoogleSignIn}
+            loading={googleLoading}
+            variant="outline"
+            style={styles.googleBtn}
+          />
+        ) : null}
 
         <TouchableOpacity
           onPress={() => navigation.navigate('SelectRole')}

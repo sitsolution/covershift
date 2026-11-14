@@ -10,13 +10,15 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.covershift.in/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.covershift.in/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "964603226312-fsgjgqhnpdemm17412i5jnpktghcomh5.apps.googleusercontent.com"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://api.covershift.in/api/v1"
+        "EXPO_PUBLIC_API_URL": "https://api.covershift.in/api/v1",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "964603226312-fsgjgqhnpdemm17412i5jnpktghcomh5.apps.googleusercontent.com"
       }
     }
   }

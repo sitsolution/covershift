@@ -23,7 +23,7 @@ export type AuthStackParamList = {
   Login: undefined;
   ForgotPassword: undefined;
   OTPVerification: { email: string; debugOtp?: string | null };
-  GoogleSignup: { googleEmail: string; googleName: string; accessToken: string };
+  GoogleSignup: { googleEmail: string; googleName: string; idToken: string };
 };
 
 const Stack = createNativeStackNavigator<AuthStackParamList>();

@@ -40,7 +40,7 @@ const FACILITY_TYPES = [
 ];
 
 export default function GoogleSignupScreen({ navigation, route }: Props) {
-  const { googleEmail, googleName, accessToken } = route.params;
+  const { googleEmail, googleName, idToken } = route.params;
   const { saveTokens } = useAuth();
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState('');
@@ -75,7 +75,7 @@ export default function GoogleSignupScreen({ navigation, route }: Props) {
     if (!role) { showToast('Please select your role'); return; }
     if (!phone) { showToast('Phone number is required'); return; }
 
-    const form: any = { accessToken, role, phone };
+    const form: any = { idToken, role, phone };
 
     if (role === 'doctor') {
       if (!licenseNumber || !specialty) { showToast('License number and specialty are required'); return; }

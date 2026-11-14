@@ -324,21 +324,35 @@ def accept_invitation(payload: ResetPasswordRequest, db: Session = Depends(get_d
     return TokenResponse(**_token_response(user))
 
 
-@router.post("/google", response_model=TokenResponse | GoogleNeedsRegistrationResponse)
-def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
-    """Sign in with Google. Returns JWT if user exists, else needsRegistration payload."""
+def _google_identity(id_token: str) -> tuple[str, str]:
+    """(email, name) from a Google ID token, after checking Google issued it
+    to *our* OAuth client. Checking the audience matters: a token any other
+    app obtained for the same Google user must not log in here."""
     import httpx
-    resp = httpx.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        headers={"Authorization": f"Bearer {payload.access_token}"},
-        timeout=10,
-    )
+
+    if not settings.google_client_ids:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Google sign-in is not available")
+    try:
+        resp = httpx.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": id_token}, timeout=10)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=status.HTTP_502_BAD_GATEWAY, detail="Could not reach Google, please try again")
     if resp.status_code != 200:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
 
-    google_data = resp.json()
-    email = google_data.get("email")
-    full_name = google_data.get("name", "")
+    claims = resp.json()
+    if (
+        claims.get("aud") not in settings.google_client_ids
+        or claims.get("iss") not in ("accounts.google.com", "https://accounts.google.com")
+        or str(claims.get("email_verified")).lower() != "true"
+    ):
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
+    return claims.get("email", ""), claims.get("name", "")
+
+
+@router.post("/google", response_model=TokenResponse | GoogleNeedsRegistrationResponse)
+def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
+    """Sign in with Google. Returns JWT if user exists, else needsRegistration payload."""
+    email, full_name = _google_identity(payload.id_token)
 
     if not email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google account has no email")
@@ -357,19 +371,8 @@ def google_auth(payload: GoogleAuthRequest, db: Session = Depends(get_db)):
 @router.post("/google-signup", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 def google_signup(payload: GoogleSignupRequest, db: Session = Depends(get_db)):
     """Complete registration for new Google users after role selection."""
-    import httpx
     import secrets as _secrets
-    resp = httpx.get(
-        "https://www.googleapis.com/oauth2/v3/userinfo",
-        headers={"Authorization": f"Bearer {payload.access_token}"},
-        timeout=10,
-    )
-    if resp.status_code != 200:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Google token")
-
-    google_data = resp.json()
-    email = google_data.get("email")
-    full_name = google_data.get("name", "")
+    email, full_name = _google_identity(payload.id_token)
 
     if not email:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Google account has no email")

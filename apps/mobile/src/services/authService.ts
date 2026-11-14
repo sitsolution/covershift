@@ -162,13 +162,13 @@ const authService = {
     await api.post('/auth/logout');
   },
 
-  googleAuth: async (accessToken: string): Promise<TokenData | { needsRegistration: true; googleEmail: string; googleName: string }> => {
-    const { data } = await api.post('/auth/google', { accessToken });
+  googleAuth: async (idToken: string): Promise<TokenData | { needsRegistration: true; googleEmail: string; googleName: string }> => {
+    const { data } = await api.post('/auth/google', { idToken });
     return data;
   },
 
   googleSignup: async (form: {
-    accessToken: string;
+    idToken: string;
     role: string;
     phone?: string;
     licenseNumber?: string;

@@ -62,6 +62,13 @@ class Settings(BaseSettings):
     VAPID_PUBLIC_KEY: str = ""
     VAPID_CLAIMS_EMAIL: str = "admin@covershift.in"
 
+    # ── Google sign-in ────────────────────────────────────────────────────────
+    # OAuth *web* client ID(s) from the Google Cloud project, comma-separated.
+    # The app asks Google for an ID token issued to this client, and the API
+    # only accepts tokens whose audience is listed here. Empty = Google
+    # sign-in is turned off.
+    GOOGLE_CLIENT_IDS: str = ""
+
     # ── Business rules ────────────────────────────────────────────────────────
     # How close to shift start a confirmed application may still be cancelled.
     CANCELLATION_CUTOFF_HOURS: int = 24
@@ -74,6 +81,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins(self) -> List[str]:
         return self._split_csv(self.CORS_ORIGINS)
+
+    @property
+    def google_client_ids(self) -> List[str]:
+        return self._split_csv(self.GOOGLE_CLIENT_IDS)
 
     @property
     def allowed_upload_types(self) -> List[str]:

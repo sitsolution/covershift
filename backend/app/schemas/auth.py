@@ -195,7 +195,7 @@ class ChangePasswordRequest(CamelModel):
 
 
 class GoogleAuthRequest(CamelModel):
-    access_token: str
+    id_token: str
 
 
 class GoogleNeedsRegistrationResponse(CamelModel):
@@ -205,7 +205,7 @@ class GoogleNeedsRegistrationResponse(CamelModel):
 
 
 class GoogleSignupRequest(CamelModel):
-    access_token: str
+    id_token: str
     role: UserRole
     phone: Optional[str] = None
     license_number: Optional[str] = None
