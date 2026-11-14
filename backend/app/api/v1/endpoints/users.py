@@ -213,11 +213,12 @@ def delete_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    """Soft-delete: deactivates the account. Staff disappear from the directory
-    and cannot log in again. Data is retained for audit purposes."""
-    current_user.is_active = False
-    db.commit()
-    return MessageResponse(message="Account deactivated")
+    """Delete the account and its personal data (see services.account_deletion).
+    Past shifts and payments stay, no longer naming the person."""
+    from app.services.account_deletion import delete_account as erase
+
+    erase(db, current_user)
+    return MessageResponse(message="Account deleted")
 
 
 @router.delete("/me/device-token", response_model=MessageResponse)

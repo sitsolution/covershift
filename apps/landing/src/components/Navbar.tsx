@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 
 const NAV_LINKS = [
-  { label: 'Features',     href: '#features'   },
-  { label: 'How It Works', href: '#how-it-works'},
-  { label: 'For Hospitals',href: '#hospitals'   },
-  { label: 'For Staff',    href: '#staff'       },
+  { label: 'Features',     href: '/#features'   },
+  { label: 'How It Works', href: '/#how-it-works'},
+  { label: 'For Hospitals',href: '/#hospitals'   },
+  { label: 'For Staff',    href: '/#staff'       },
 ];
 
 export default function Navbar() {

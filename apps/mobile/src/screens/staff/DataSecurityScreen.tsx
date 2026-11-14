@@ -71,7 +71,7 @@ export default function DataSecurityScreen({ navigation }: Props) {
         />
         <InfoBlock
           title="Data retention"
-          body="We retain your profile and shift records for up to 3 years after your last activity to comply with healthcare staffing regulations."
+          body="When you delete your account, your profile, documents, photo and contact details are deleted. Records of past shifts and payments are kept without your name, for facility and tax records."
         />
 
         <SectionTitle label="Security" />
@@ -88,7 +88,7 @@ export default function DataSecurityScreen({ navigation }: Props) {
         <View style={styles.dangerCard}>
           <Text style={styles.dangerTitle}>Delete Account</Text>
           <Text style={styles.dangerBody}>
-            Permanently deactivates your account. Your profile will be removed from the staff directory and you will no longer be able to log in. This action cannot be undone.
+            Permanently deletes your account, profile, documents and photo. You will no longer be able to log in. This action cannot be undone.
           </Text>
           <TouchableOpacity
             style={styles.deleteBtn}
@@ -103,7 +103,7 @@ export default function DataSecurityScreen({ navigation }: Props) {
       <ConfirmModal
         visible={deleteModal}
         title="Delete account?"
-        description="This will permanently deactivate your account. You will be logged out immediately and cannot undo this."
+        description="This will permanently delete your account and your personal data. You will be logged out immediately and cannot undo this."
         confirmLabel={deleting ? 'Deleting…' : 'Yes, Delete'}
         dismissLabel="Cancel"
         confirmVariant="danger"
